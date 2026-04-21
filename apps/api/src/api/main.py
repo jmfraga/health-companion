@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from api import __version__
 from api.config import get_settings
-from api.routers import health
+from api.routers import chat, health
 
 
 @asynccontextmanager
@@ -31,6 +31,7 @@ def create_app() -> FastAPI:
     )
 
     app.include_router(health.router)
+    app.include_router(chat.router)
     return app
 
 

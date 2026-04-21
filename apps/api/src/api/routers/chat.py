@@ -1,0 +1,59 @@
+"""Chat endpoint — streams SSE events as the orchestrator runs."""
+
+from __future__ import annotations
+
+import json
+from typing import Any
+
+from fastapi import APIRouter
+from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
+
+from api.agents.runner import run_chat_turn
+from api.agents.tools import get_profile
+
+
+router = APIRouter(prefix="/api", tags=["chat"])
+
+
+class ChatMessage(BaseModel):
+    role: str
+    content: str
+
+
+class ChatRequest(BaseModel):
+    messages: list[ChatMessage]
+
+
+def _format_sse(event: dict[str, Any]) -> str:
+    return f"data: {json.dumps(event)}\n\n"
+
+
+@router.post("/chat")
+async def chat(request: ChatRequest) -> StreamingResponse:
+    anthropic_messages = [
+        {"role": m.role, "content": m.content} for m in request.messages
+    ]
+
+    async def event_stream():
+        try:
+            async for event in run_chat_turn(anthropic_messages):
+                yield _format_sse(event)
+        except Exception as exc:
+            yield _format_sse({"type": "error", "message": str(exc)})
+            return
+        yield _format_sse({"type": "profile_snapshot", "profile": get_profile()})
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
+@router.get("/profile")
+async def read_profile() -> dict[str, Any]:
+    return {"profile": get_profile()}
