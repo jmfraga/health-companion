@@ -7,7 +7,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=(".env", "../.env", "../../.env"),
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",
@@ -17,12 +17,15 @@ class Settings(BaseSettings):
     environment: str = Field(default="development")
     debug: bool = Field(default=True)
 
-    database_url: str = Field(default="postgresql+psycopg://localhost/health_companion")
+    database_url: str = Field(
+        default="postgresql+psycopg://postgres:postgres@localhost:5432/health_companion"
+    )
 
     supabase_url: str = Field(default="")
-    supabase_anon_key: str = Field(default="")
-    supabase_service_role_key: str = Field(default="")
-    supabase_jwt_secret: str = Field(default="")
+    supabase_publishable_key: str = Field(default="")
+    supabase_secret_key: str = Field(default="")
+    supabase_jwks_url: str = Field(default="")
+    supabase_jwt_kid: str = Field(default="")
 
     anthropic_api_key: str = Field(default="")
     anthropic_beta_header: str = Field(default="managed-agents-2026-04-01")

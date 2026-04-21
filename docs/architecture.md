@@ -4,33 +4,38 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                         Client (PWA, Next.js)                       │
-│  Onboarding  │  Labs upload  │  Consult prep  │  Post-consult recap │
+│                         Client (PWA, Next.js)                        │
+│  Chat surface · Live profile panel · Drop-zone · Lab table · Timeline│
 └─────────────┬───────────────────────────────────────────────────────┘
-              │ HTTPS (JWT from Supabase Auth)
+              │ HTTPS + SSE
               ▼
 ┌─────────────────────────────────────────────────────────────────────┐
 │                      FastAPI (apps/api)                             │
-│  /auth  /profile  /labs  /consultations  /chat                      │
+│  /api/chat   /api/ingest-pdf   /api/simulate-months-later           │
+│  /api/profile   /api/timeline   /health                             │
 │                                                                     │
 │  ┌───────────────────────────────────────────────────────────────┐  │
-│  │  agents/runner.py  —  Managed Agent invocation + SSE relay    │  │
+│  │  agents/runner.py — orchestrator invocation + SSE relay       │  │
+│  │  agents/tools.py   — save_profile_field, log_biomarker,       │  │
+│  │                      schedule_screening, fetch_guidelines,    │  │
+│  │                      remember                                 │  │
 │  └──────────────┬────────────────────────────────────────────────┘  │
 └─────────────────┼───────────────────────────────────────────────────┘
-                  │                                           ▲
-                  │ Anthropic SDK (beta)                      │
-                  ▼                                           │
-┌─────────────────────────────────────────────────────────────┴───────┐
-│                     Claude Managed Agents                           │
-│   LabAnalyzer · ConsultationPrep · PostConsultation · Companion     │
-│   (Opus 4.7 · PDF Skill · custom HC Skills · code exec tool)        │
+                  │ Anthropic SDK (messages.create, multimodal, tools)
+                  ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│             Claude Opus 4.7 — single orchestrator agent             │
+│   Extended thinking · Tool use · Multimodal PDF · Streaming SSE     │
 └─────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────┐
-│                           Supabase                                  │
-│   Postgres (+pgvector)  │  Auth (Google)  │  Storage (labs, audio)  │
+│                           SQLite (local)                            │
+│  profile · biomarkers · lab_reports · episodic_memory ·             │
+│  semantic_memory · timeline_events · agent_runs                     │
 └─────────────────────────────────────────────────────────────────────┘
 ```
+
+For the hackathon the app runs on a single machine with SQLite shipped alongside the repo fixtures. Supabase + Postgres are staged in `.env.example` and `config.py` for the post-submission migration path but are not used at demo time.
 
 ## Repo layout
 
@@ -43,85 +48,89 @@ health-companion/
 │           ├── main.py
 │           ├── config.py
 │           ├── db.py
-│           ├── models/       # SQLAlchemy
-│           ├── schemas/      # Pydantic
+│           ├── models/       # SQLAlchemy models (minimal)
+│           ├── schemas/      # Pydantic: HealthProfile, LabAnalysis, etc.
 │           ├── routers/      # HTTP endpoints
 │           ├── services/     # Business logic
 │           └── agents/
-│               ├── registry.py
-│               ├── runner.py
-│               └── prompts/  # One file per agent
+│               ├── runner.py     # Invoke orchestrator, relay SSE
+│               ├── tools.py      # Typed tool definitions
+│               ├── guidelines/   # Static guideline data served by fetch_guidelines
+│               └── prompts/      # Single orchestrator prompt (authored by hc-clinical)
 ├── packages/             # Reserved for shared code (TS or Python) when needed
-├── skills/               # Custom Claude Skills (hc/lab-patterns, etc.)
 ├── docs/
 │   ├── agents.md
-│   └── architecture.md
+│   ├── architecture.md
+│   ├── bitacora-desarrollo.md
+│   ├── concept-v1.md
+│   ├── competitive-analysis-v1.md
+│   ├── hackathon-brief-for-claude-code-v1.md
+│   └── tesis-del-fundador-v1.md
+├── fixtures/             # Laura seed profile + anonymized lab PDF + "3 months later" state
 ├── ROADMAP.md
 ├── README.md
 └── LICENSE
 ```
 
-## Data model (v1 — subject to change)
+## Data model (v1 — SQLite for hackathon, migrates to Postgres post-submit)
 
-**users** — mirror of Supabase auth users (`id uuid pk`, `email`, `created_at`).
+No authentication for the demo. Laura is the only profile. A later `user_id` column drops in cleanly for multi-user.
 
-**health_profiles** — per-user canonical profile. One row per user.
-- `user_id` fk
-- `age`, `sex`, `language`
-- `family_history jsonb` (e.g. `{"diabetes": ["father"], "cancer_colon": ["maternal_grandmother"]}`)
-- `active_conditions jsonb` (list of `{name, diagnosed_on, notes}`)
-- `medications jsonb` (list of `{name, dose, frequency, started_on, prescribed_by}`)
-- `habits jsonb` (sleep, activity, tobacco, alcohol, etc.)
-- `preferences jsonb` (tone, notification frequency)
-- `updated_at`
+**profile** — one row.
+- `id` (primary key, single seed value)
+- `age`, `sex`, `language`, `country`
+- `family_history` (JSON)
+- `active_conditions` (JSON)
+- `medications` (JSON)
+- `habits` (JSON)
+- `preferences` (JSON)
+- `created_at`, `updated_at`
 
-**lab_results**
-- `id uuid pk`
-- `user_id fk`
-- `source_file_path` (Supabase Storage URL)
-- `analyzed_at`
-- `analysis jsonb` (the structured output from LabAnalyzerAgent)
-- `agent_run_id fk` → `agent_runs.id`
+**biomarkers**
+- `id`, `name`, `value`, `unit`, `sampled_on`, `source`, `logged_at`
 
-**consultations**
-- `id uuid pk`
-- `user_id fk`
-- `specialty`, `reason`, `scheduled_for`, `occurred_on`
-- `prep_summary jsonb` (from ConsultationPrepAgent)
-- `post_summary jsonb` (from PostConsultationAgent)
-- `audio_file_path` (nullable)
-- `prep_agent_run_id`, `post_agent_run_id`
+**lab_reports**
+- `id`, `file_path`, `analyzed_at`
+- `analysis` (JSON — structured `LabAnalysis` output)
+- `confidence` (JSON — per-value confidence)
+
+**episodic_memory**
+- `id`, `content`, `tags` (JSON), `created_at`
+
+**semantic_memory**
+- `id`, `fact`, `tags` (JSON), `confidence`, `last_referenced_at`
+
+**timeline_events**
+- `id`, `event_type` (onboarding / screening_scheduled / lab_taken / proactive_message), `payload` (JSON), `occurred_on`
 
 **agent_runs**
-- `id uuid pk`
-- `user_id fk`
-- `agent_type` (enum)
-- `managed_session_id` (nullable — null for non-Managed agents)
-- `status` (running / idle / completed / failed)
+- `id`, `agent_name`, `session_id`, `status`
 - `started_at`, `finished_at`, `duration_ms`
-- `input_tokens`, `output_tokens`, `session_runtime_seconds`
-- `cost_usd`
-- `input_hash` (for caching)
-- `error` (text, nullable)
+- `input_tokens`, `output_tokens`, `cost_usd`
+- `tool_calls` (JSON), `error` (nullable)
 
-**reminders**
-- `id uuid pk`
-- `user_id fk`
-- `kind` (medication / study / follow_up)
-- `fires_at`
-- `payload jsonb`
-- `sent_at` (nullable)
+## Event contract (SSE)
 
-Row-Level Security on every table: `auth.uid() = user_id`.
+| Event | Payload | Consumed by |
+|-------|---------|-------------|
+| `message_delta` | text chunk | Chat surface |
+| `reasoning_delta` | text chunk | "See reasoning" disclosure |
+| `tool_use` | `{ name, id, input }` | Live profile panel, timeline, lab table |
+| `tool_result` | `{ id, output }` | UI confirmation of write |
+| `lab_analysis` | structured `LabAnalysis` | Lab table + interpretation |
+| `proactive_message` | `{ text, context_refs }` | Proactive message card (Act 2 close) |
+| `done` | — | End of turn |
 
 ## Deployment
 
-| Component | Platform |
-|-----------|----------|
-| `apps/web` | Vercel (PWA, auto-deploys from `main`) |
-| `apps/api` | Fly.io or Railway (single region for hackathon; multi-region post-submit) |
-| Database + Auth + Storage | Supabase managed |
-| DNS | Cloudflare |
+| Component | Platform | Notes |
+|-----------|----------|-------|
+| `apps/web` | Vercel (auto-deploy from `main`) | Hackathon demo |
+| `apps/api` | Fly.io (single region, persistent volume for SQLite) | Hackathon demo |
+| Database | SQLite file in `apps/api/` | Hackathon demo |
+| DNS | Cloudflare if a custom domain is used | Optional |
+
+Post-submit migration path (documented but not executed for the hackathon): swap SQLite for Supabase Postgres via the existing `DATABASE_URL`, add Supabase Auth, add Storage buckets for labs and audio, enable Row-Level Security.
 
 ## Local dev
 
@@ -129,26 +138,23 @@ Row-Level Security on every table: `auth.uid() = user_id`.
 # api
 cd apps/api
 uv sync
-uv run uvicorn api.main:app --reload
+uv run uvicorn api.main:app --reload --port 8000
 
 # web
 cd apps/web
 npm install
 npm run dev
-
-# Supabase (optional local stack; cloud is fine for hackathon)
-supabase start
 ```
 
-## Secrets & environments
+## Secrets and environments
 
-- `.env` at repo root for shared dev secrets (gitignored).
-- Each app also supports its own `.env.local` overlay.
-- Vercel stores frontend secrets. Fly.io stores backend secrets. Supabase stores DB secrets.
+- `.env` at repo root holds shared dev secrets (gitignored).
+- Each app supports its own `.env.local` overlay.
+- Vercel stores frontend secrets. Fly.io stores backend secrets.
 - `.env.example` at repo root is the source of truth for what must be set.
 
 ## Open architectural questions
 
-- **Push notifications**: Web Push (VAPID) vs Expo if we go mobile native. Deferred — web push is fine for demo.
-- **Search over profile history**: pgvector embeddings of past conversations? Or keep everything structured in jsonb and let Managed Agents search via code execution? Starting with structured jsonb; add vector only if retrieval quality suffers.
-- **PII / HIPAA posture**: not targeting HIPAA for hackathon. Disclaimers say "wellness, not medical device." Document the gap clearly for post-hackathon.
+- **Vector memory**: pgvector on the semantic-memory table is a natural fit once we migrate off SQLite. For the hackathon, structured JSON retrieval is enough.
+- **Web push**: mocked in the UI for the demo; real VAPID setup is a post-submit concern.
+- **PII / HIPAA**: not targeting HIPAA or any other clinical-grade framework for the hackathon. The wellness classification (never diagnose, never prescribe, always refer) is the explicit boundary. Documented clearly in the README and in `concept-v1.md`.
