@@ -137,3 +137,49 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+ENV/
+env/
+.python-version
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Local development
+*.local
+.turbo/
+
+# Supabase local
+supabase/.branches
+supabase/.temp
+
+# Uploaded content (never commit user data)
+uploads/
+tmp/
+*.pdf
+*.wav
+*.mp3
+*.m4a
+!docs/**/*.pdf
