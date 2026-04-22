@@ -34,7 +34,11 @@ Never make the conversation feel like a form.
 
 
 MODEL = "claude-opus-4-7"
-MAX_TOKENS = 2048
+MAX_TOKENS = 6144
+# Opus 4.7 uses adaptive thinking; higher effort surfaces visible reasoning.
+# "max" lets the model think hard and reliably emit thinking_delta events on
+# turns that merit it — which is what the "See reasoning" disclosure needs.
+THINKING_EFFORT = "max"
 
 
 def _serialize_block(block: Any) -> dict[str, Any]:
@@ -81,11 +85,14 @@ async def run_chat_turn(messages: list[dict[str, Any]]) -> AsyncIterator[dict[st
     while True:
         pending_tool_uses: list[dict[str, Any]] = []
         current_tool_use: dict[str, Any] | None = None
+        in_thinking_block = False
         text_buffer: list[str] = []
 
         async with client.messages.stream(
             model=MODEL,
             max_tokens=MAX_TOKENS,
+            thinking={"type": "adaptive", "display": "summarized"},
+            output_config={"effort": THINKING_EFFORT},
             system=SYSTEM_PROMPT,
             tools=TOOLS,
             messages=messages,
@@ -95,6 +102,7 @@ async def run_chat_turn(messages: list[dict[str, Any]]) -> AsyncIterator[dict[st
 
                 if etype == "content_block_start":
                     block = event.content_block
+                    in_thinking_block = block.type == "thinking"
                     if block.type == "tool_use":
                         current_tool_use = {
                             "id": block.id,
@@ -103,16 +111,30 @@ async def run_chat_turn(messages: list[dict[str, Any]]) -> AsyncIterator[dict[st
                         }
                     else:
                         current_tool_use = None
+                    if in_thinking_block:
+                        yield {"type": "reasoning_start"}
 
                 elif etype == "content_block_delta":
                     delta = event.delta
-                    if delta.type == "text_delta":
+                    dtype = getattr(delta, "type", None)
+                    if dtype == "text_delta":
                         text_buffer.append(delta.text)
                         yield {"type": "message_delta", "text": delta.text}
-                    elif delta.type == "input_json_delta" and current_tool_use:
+                    elif dtype == "thinking_delta":
+                        yield {"type": "reasoning_delta", "text": delta.thinking}
+                    elif dtype == "input_json_delta" and current_tool_use:
                         current_tool_use["input_json"] += delta.partial_json
+                    elif in_thinking_block:
+                        # Capture whatever the new API streams inside a thinking block
+                        # (summary_delta, signature_delta, etc.).
+                        text_val = getattr(delta, "text", None) or getattr(delta, "summary", None)
+                        if text_val:
+                            yield {"type": "reasoning_delta", "text": text_val}
 
                 elif etype == "content_block_stop":
+                    if in_thinking_block:
+                        yield {"type": "reasoning_stop"}
+                        in_thinking_block = False
                     if current_tool_use:
                         raw = current_tool_use.pop("input_json") or ""
                         try:

@@ -2,7 +2,11 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-type ChatMessage = { role: "user" | "assistant"; content: string };
+type ChatMessage = {
+  role: "user" | "assistant";
+  content: string;
+  reasoning?: string;
+};
 
 type ProfileSnapshot = Record<string, unknown>;
 
@@ -11,6 +15,9 @@ type StreamEvent =
   | { type: "tool_use"; id: string; name: string; input: Record<string, unknown> }
   | { type: "tool_result"; id: string; output?: Record<string, unknown>; error?: string }
   | { type: "profile_snapshot"; profile: ProfileSnapshot }
+  | { type: "reasoning_start" }
+  | { type: "reasoning_delta"; text: string }
+  | { type: "reasoning_stop" }
   | { type: "done" }
   | { type: "error"; message: string };
 
@@ -23,6 +30,11 @@ export default function ChatPage() {
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Index of the assistant message that is currently streaming reasoning,
+  // or null when no reasoning is in flight. Drives the pulse on the
+  // "See reasoning" collapsed label.
+  const [reasoningActiveIndex, setReasoningActiveIndex] = useState<number | null>(null);
+  const [expandedReasoning, setExpandedReasoning] = useState<Set<number>>(new Set());
   const transcriptRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -112,6 +124,29 @@ export default function ChatPage() {
             }
           } else if (event.type === "profile_snapshot") {
             setProfile(event.profile);
+          } else if (event.type === "reasoning_start") {
+            setMessages((prev) => {
+              const idx = prev.length - 1;
+              if (idx >= 0 && prev[idx].role === "assistant") {
+                setReasoningActiveIndex(idx);
+              }
+              return prev;
+            });
+          } else if (event.type === "reasoning_delta") {
+            setMessages((prev) => {
+              const copy = [...prev];
+              const lastIdx = copy.length - 1;
+              const last = copy[lastIdx];
+              if (last?.role === "assistant") {
+                copy[lastIdx] = {
+                  ...last,
+                  reasoning: (last.reasoning ?? "") + event.text,
+                };
+              }
+              return copy;
+            });
+          } else if (event.type === "reasoning_stop") {
+            setReasoningActiveIndex(null);
           } else if (event.type === "error") {
             setError(event.message);
           }
@@ -122,8 +157,21 @@ export default function ChatPage() {
       setError(message);
     } finally {
       setBusy(false);
+      setReasoningActiveIndex(null);
     }
   }, [input, busy, messages, flashField]);
+
+  const toggleReasoning = useCallback((idx: number) => {
+    setExpandedReasoning((prev) => {
+      const next = new Set(prev);
+      if (next.has(idx)) {
+        next.delete(idx);
+      } else {
+        next.add(idx);
+      }
+      return next;
+    });
+  }, []);
 
   return (
     <div className="min-h-screen bg-zinc-50 text-zinc-900">
@@ -155,24 +203,79 @@ export default function ChatPage() {
                 </span>
               </div>
             )}
-            {messages.map((m, i) => (
-              <div
-                key={i}
-                className={
-                  m.role === "user"
-                    ? "ml-auto max-w-[85%] rounded-2xl rounded-br-sm bg-zinc-900 px-4 py-2.5 text-sm text-white"
-                    : "mr-auto max-w-[85%] rounded-2xl rounded-bl-sm bg-zinc-100 px-4 py-2.5 text-sm"
-                }
-              >
-                {m.content || (m.role === "assistant" && busy ? (
-                  <span className="inline-flex items-center gap-1 text-zinc-400">
-                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-zinc-400" />
-                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-zinc-400 [animation-delay:150ms]" />
-                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-zinc-400 [animation-delay:300ms]" />
-                  </span>
-                ) : "")}
-              </div>
-            ))}
+            {messages.map((m, i) => {
+              const hasReasoning =
+                m.role === "assistant" && !!m.reasoning && m.reasoning.length > 0;
+              const isReasoningActive = reasoningActiveIndex === i;
+              const isExpanded = expandedReasoning.has(i);
+              return (
+                <div
+                  key={i}
+                  className={
+                    m.role === "user"
+                      ? "ml-auto flex max-w-[85%] flex-col items-end"
+                      : "mr-auto flex max-w-[85%] flex-col items-start"
+                  }
+                >
+                  <div
+                    className={
+                      m.role === "user"
+                        ? "rounded-2xl rounded-br-sm bg-zinc-900 px-4 py-2.5 text-sm text-white"
+                        : "rounded-2xl rounded-bl-sm bg-zinc-100 px-4 py-2.5 text-sm"
+                    }
+                  >
+                    {m.content ||
+                      (m.role === "assistant" && busy && !hasReasoning ? (
+                        <span className="inline-flex items-center gap-1 text-zinc-400">
+                          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-zinc-400" />
+                          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-zinc-400 [animation-delay:150ms]" />
+                          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-zinc-400 [animation-delay:300ms]" />
+                        </span>
+                      ) : (
+                        ""
+                      ))}
+                  </div>
+                  {(hasReasoning || (m.role === "assistant" && isReasoningActive)) && (
+                    <div className="mt-1.5 w-full">
+                      <button
+                        type="button"
+                        onClick={() => toggleReasoning(i)}
+                        aria-expanded={isExpanded}
+                        className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-medium text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-700"
+                      >
+                        <svg
+                          aria-hidden="true"
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
+                          className={
+                            "h-3 w-3 transition-transform " +
+                            (isExpanded ? "rotate-90" : "rotate-0")
+                          }
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M7.21 14.77a.75.75 0 0 1 .02-1.06L10.44 10 7.23 6.29a.75.75 0 1 1 1.08-1.04l3.75 4.25a.75.75 0 0 1 0 1.04l-3.75 4.25a.75.75 0 0 1-1.1.02Z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                        <span>See reasoning</span>
+                        {isReasoningActive && (
+                          <span className="flex items-center gap-1 text-zinc-400">
+                            <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-zinc-400" />
+                            <span className="italic">thinking…</span>
+                          </span>
+                        )}
+                      </button>
+                      {isExpanded && hasReasoning && (
+                        <div className="mt-1 whitespace-pre-wrap rounded-lg bg-zinc-50 px-3 py-2.5 text-xs leading-relaxed text-zinc-500">
+                          {m.reasoning}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
             {error && (
               <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-xs text-red-700">
                 {error}
