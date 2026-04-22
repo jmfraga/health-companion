@@ -114,6 +114,52 @@ TOOLS: list[dict[str, Any]] = [
         },
     },
     {
+        "name": "log_biomarker",
+        "description": (
+            "Log a single biomarker measurement — a lab value the user shares "
+            "in conversation, or one extracted from a parsed lab report. Store "
+            "the canonical name (e.g. 'fasting_glucose', 'hba1c', "
+            "'total_cholesterol', 'ldl', 'hdl', 'triglycerides'), the numeric "
+            "value, the unit as printed, the sample date when you know it, and "
+            "where the value came from. One call per distinct value. Values "
+            "logged here are retrievable later for trend analysis."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": (
+                        "Canonical biomarker name in snake_case, e.g. "
+                        "'fasting_glucose', 'hba1c', 'total_cholesterol', "
+                        "'ldl', 'hdl', 'triglycerides'."
+                    ),
+                },
+                "value": {
+                    "type": "number",
+                    "description": "Numeric measurement.",
+                },
+                "unit": {
+                    "type": "string",
+                    "description": "Unit as printed, e.g. 'mg/dL', '%', 'mmol/L'.",
+                },
+                "sampled_on": {
+                    "type": ["string", "null"],
+                    "description": (
+                        "ISO 8601 date (YYYY-MM-DD) when the sample was drawn. "
+                        "Null when unknown."
+                    ),
+                },
+                "source": {
+                    "type": "string",
+                    "enum": ["user_said", "lab_report", "wearable"],
+                    "description": "Where the value came from.",
+                },
+            },
+            "required": ["name", "value", "unit", "sampled_on", "source"],
+        },
+    },
+    {
         "name": "remember",
         "description": (
             "Curate memory. Call this sparingly — only when something is worth "
@@ -158,6 +204,7 @@ _profile: dict[str, Any] = {}
 _scheduled_screenings: list[dict[str, Any]] = []
 _episodic_memory: list[dict[str, Any]] = []
 _semantic_memory: list[dict[str, Any]] = []
+_biomarkers: list[dict[str, Any]] = []
 
 
 def reset_profile() -> None:
@@ -174,6 +221,16 @@ def reset_memory() -> None:
     """Clear both episodic and semantic memory stores."""
     _episodic_memory.clear()
     _semantic_memory.clear()
+
+
+def reset_biomarkers() -> None:
+    """Clear the in-memory biomarker log."""
+    _biomarkers.clear()
+
+
+def get_biomarkers() -> list[dict[str, Any]]:
+    """Return a shallow copy of the biomarker log."""
+    return list(_biomarkers)
 
 
 def get_profile() -> dict[str, Any]:
@@ -417,6 +474,23 @@ def execute_tool(name: str, inputs: dict[str, Any]) -> dict[str, Any]:
             "concern": concern,
             "recommendations": _recommendations_for(age, sex, concern),
         }
+
+    if name == "log_biomarker":
+        bm_name = inputs["name"]
+        value = inputs["value"]
+        unit = inputs["unit"]
+        sampled_on = inputs.get("sampled_on")
+        source = inputs["source"]
+        entry = {
+            "name": bm_name,
+            "value": value,
+            "unit": unit,
+            "sampled_on": sampled_on,
+            "source": source,
+            "logged_at": datetime.now(UTC).isoformat(),
+        }
+        _biomarkers.append(entry)
+        return {"ok": True, "name": bm_name, "value": value, "unit": unit}
 
     if name == "remember":
         memory_type = inputs["memory_type"]
