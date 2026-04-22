@@ -252,3 +252,54 @@ Splitting the conversation between two models introduces:
 3. A second prompt to audit clinically.
 
 The effort-classifier keeps Opus as the single voice; Haiku only decides whether Opus should think hard. One model speaks, one model budgets. Safer, cheaper, and still Opus-forward.
+
+---
+
+### Second late-night decision — Managed Agents for the proactive engine (April 21, before bed pt. II)
+
+Juan Manuel asked a question that turned out to be very on the nose:
+
+> *"Cuando hablan de agentes en el hackathon, ¿es de estos agentes [Claude Managed Agents] o de subagentes de Claude Code? ¿Nos serviría considerarlo?"*
+
+The answer matters for judging.
+
+**The three kinds of "agents" in this project**:
+
+| Kind | What it is | Where we use it |
+|---|---|---|
+| **Claude Managed Agents** | Anthropic platform product: cloud containers with SSE streaming, session state, `client.beta.agents/environments/sessions`. $0.08/session-hour + tokens. Beta. | Not yet. Target: the proactive engine. |
+| **Claude Code subagents** | Personas inside the Claude Code CLI, defined in `~/.claude/agents/*.md`. Invoked via the Agent tool. | Our development team: `hc-coordinator`, `hc-frontend`, `hc-backend`, `hc-clinical`. |
+| **Messages API directly** | Standard API: tool use, streaming, multimodal, extended thinking. | Today's product runtime. |
+
+The hackathon's main rubric rewards **creative Opus 4.7 use** in any form; we're strong there already with multimodal PDF ingestion, extended thinking surfaced through "See reasoning", and typed tool use animating the UI.
+
+But there is a **side prize worth $5,000 USD in API credits** named "Best use of Claude Managed Agents," defined literally as: *"the project that best uses Managed Agents to hand off meaningful, long-running tasks — not just a demo, but something you'd actually ship."*
+
+**The natural fit we found**:
+
+The **proactive engine** — the part of Health Companion that reaches out to the user when something becomes relevant (a screening is due, a lab is trending, a life event happened, a birthday lands on a screening threshold). In production that engine runs as a scheduled background loop across the active user base. It is stateful, autonomous, long-running, and the work it does per user is a well-bounded evaluation of trigger conditions plus the composition of a personalized outreach. That is the Managed Agents shape without shoehorning.
+
+Our current `POST /api/simulate-months-later` endpoint is a tiny version of exactly that engine.
+
+**Decision (Option 3 in the reflection)**:
+
+1. Keep the hot conversational path on Messages API. Latency and extended-thinking visibility win there.
+2. Migrate `/api/simulate-months-later` to run on a real Managed Agents session. Same SSE contract to the frontend (reasoning_* + message_delta + proactive_message + timeline_event), but the engine behind it is an autonomous cloud agent instead of a direct Messages call.
+3. Narrate both in the pitch: *"Messages API for the turn you hear; Managed Agents for the check-in you receive."* The architecture is real production design, not a demo toy. We compete for the $5K side prize and strengthen the Depth & Execution score.
+
+**What stays unchanged**:
+
+- The conversational chat surface (`/api/chat`), the multimodal PDF endpoint (`/api/ingest-pdf`), the orchestrator system prompt, the "See reasoning" disclosure, the screening calendar, the live profile panel, the mobile-first layout, the Supabase Auth UI. All of the main-rubric wow moments stay on Messages API where they earn their points.
+
+**What changes**:
+
+- `/api/simulate-months-later` becomes a Managed Agents session. The existing Messages-API version is kept as fallback — if Managed Agents has any hiccup during judging, we flip a feature flag and the demo runs unchanged.
+- A new `docs/managed-agents.md` (to be authored during the migration) captures the session-creation flow, the agent + environment definitions, the idempotent registry, and the cost accounting, so a reader can see we know what we're shipping.
+
+**Pitch-ready quotable from this decision**:
+
+- ⭐ *"Messages API for the turn you hear. Managed Agents for the check-in you receive. Two surfaces, one product, honest production economics."*
+
+**Open overnight (Wed→Thu)**:
+
+`hc-backend` is queued to author the Managed Agents migration in the background. The main safety net is that the previous Messages-API version of `/api/simulate-months-later` is preserved; the Managed Agents version lands as a sibling endpoint until Juan Manuel flips the switch.

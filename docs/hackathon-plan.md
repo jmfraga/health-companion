@@ -105,8 +105,10 @@ Target: "3 months later" fade triggers the proactive message; timeline shows the
 2. `hc-clinical` refines the proactive message wording; JM pulls for voice.
 3. JM records a scratch 5-minute warm-up walkthrough for feel.
 
-**Stretch goal — Haiku classifies Opus's effort** (if P0 is green and there is time left):
-A fast Haiku 4.5 classifier runs before the Opus call and decides the `output_config.effort` level for that turn — `low` for greetings and simple profile updates, `high` or `max` for clinically loaded turns (labs, symptoms, risk discussion). The economic story becomes defensible at pitch time: *"We use Haiku to budget Opus's thinking. At scale this turns a $0.25-per-turn product into roughly $0.03 per turn without giving up a single clinical moment."* If the stretch lands, it earns points under "Opus 4.7 Use" and "Depth & Execution". If it doesn't, the demo is unchanged.
+**Stretch goal A — Haiku classifies Opus's effort** (if P0 is green and there is time left):
+A fast Haiku 4.5 classifier runs before the Opus call and decides the `output_config.effort` level for that turn — `low` for greetings and simple profile updates, `high` or `max` for clinically loaded turns (labs, symptoms, risk discussion). The economic story becomes defensible at pitch time: *"We use Haiku to budget Opus's thinking. At scale this turns a $0.25-per-turn product into roughly $0.03 per turn without giving up a single clinical moment."* If the stretch lands, it earns points under "Opus 4.7 Use" and "Depth & Execution".
+
+**Stretch goal B — Managed Agents for the proactive engine** (queued for overnight Wed→Thu via `hc-backend`): migrate `POST /api/simulate-months-later` from a direct Messages API call to a real Claude Managed Agents session. The hot conversational path stays on Messages API for latency; the background proactive loop moves to Managed Agents because it fits the managed-agent shape (long-running, autonomous, stateful). This makes the project eligible for the **$5,000 "Best use of Claude Managed Agents" hackathon side prize**, and the architecture story — *"Messages API for the turn you hear; Managed Agents for the check-in you receive"* — is defensible under judge questioning. If it doesn't land, the Messages-API version is preserved as fallback and nothing in the demo changes.
 
 ### Saturday morning Apr 25 · Polish + fixtures + record demo
 Target: MVP demoable end-to-end, demo video grabado, fiesta al atardecer.
