@@ -118,3 +118,58 @@ Late in the day, while Juan Manuel was working with another Claude instance (`cl
 - ⭐ *"We traded breadth for transparency. 'See reasoning' is not a toy — it is the first time a patient can look over the shoulder of the model that just read their labs."*
 - *"The market has plenty of reactive chat. We built the first beat of proactivity into the 55 seconds the judges remember."*
 - *"A three-minute demo is a gift: it forces us to commit to the two moments we believe in the most."*
+
+---
+
+### Late-night sprint — plumbing + wow #1 landed (April 21, same day)
+
+After the evening pivot, we pushed straight through into implementation. By ~midnight CDMX we had:
+
+**Shipped end-to-end and verified over Tailscale from Juan Manuel's laptop:**
+
+- Anthropic API key verified; Opus 4.7 responding.
+- Supabase Postgres 17 connected via session pooler (`aws-1-us-east-2`) — held warm for post-hackathon persistence, not wired into the app runtime yet.
+- `POST /api/chat` with streaming SSE, the full agentic loop (text → tool_use → tool_result → continuation), and a curated `save_profile_field` tool.
+- Chat UI with a live profile panel that animates as `tool_use` events arrive. Fields flash emerald for ~1.8 s on update.
+- Extended thinking enabled on Opus 4.7 via the adaptive API (`thinking.type = "adaptive"`, `output_config.effort = "max"`, `display = "summarized"`), with `thinking_delta` events piped through a dedicated `reasoning_delta` SSE channel.
+- A **"See reasoning" disclosure** in the chat UI: collapsed by default, pulses "thinking…" while the model reasons, expands into a zinc-50 panel with pre-wrapped clinical reasoning.
+- Orchestrator **system prompt v2026-04-21** authored by `hc-clinical` and committed — 13.7K characters covering identity, hard rules, sanitary interpreter, screening knowledge, tool-use protocol, clinical-note reasoning style, anti-patterns, failure-mode recoveries.
+- Three more tools added by `hc-backend` — `schedule_screening`, `fetch_guidelines_for_age_sex` (with 14 guideline rows spanning USPSTF, ACS/NCCN, ACOG, ACC/AHA, NLA, ESC, ADA, Secretaría de Salud México), `remember` (episodic + semantic) — plus accessors and reset helpers.
+- `GET /api/screenings`, `GET /api/memory`, and `screenings_snapshot` / `memory_snapshot` SSE events at turn close.
+
+**Debugging we survived:**
+
+- Next.js 15 silently blocks HMR and hydration from non-localhost origins — the button on the laptop's browser stayed disabled. The fix was a single line in `next.config.ts`: `allowedDevOrigins: ["100.72.169.113"]`. Revisiting Next.js hydration on new hosts is now a ritual, not a one-off.
+- Supabase deprecated IPv4 on the direct connection string; the M4 could not route IPv6 to their pool. Switched to the Session Pooler at `aws-1-us-east-2.pooler.supabase.com:5432`. The region had to come from the Supabase dashboard Connect modal — several regions we tried silently returned "tenant or user not found".
+- Opus 4.7 rejected the legacy `thinking.type = "enabled"` shape ("not supported for this model"). The new shape is `thinking.type = "adaptive"` with an `output_config.effort` knob. Below `"max"`, thinking frequently does not emit any visible `thinking_delta` tokens — the model decides whether it's worth reasoning publicly. For a demo where reasoning is the wow, we hold `effort = "max"` as the default.
+
+**Meta-move that landed:**
+
+First two real delegations to `hc-frontend` and `hc-clinical` via Claude Code's Agent tool. Both agents read their role brief (`~/.claude/agents/hc-*.md`) and the canonical docs before acting. `hc-frontend` shipped the "See reasoning" disclosure inside one session and reported back under 150 words. `hc-clinical` authored the orchestrator system prompt from the `docs/tesis-del-fundador-v1.md` thesis. This is the pattern we narrate in the submission: the product's own coordinator-plus-specialists architecture, used to build the product.
+
+**Scope note from Juan Manuel:**
+
+> *"Me enfoco en funcionalidad. El ejemplo de Laura lo vemos al final; buscaré datos de un paciente real y lo anonimizamos."*
+
+Capability-first. Demo-narrative-last. All fixture work (the specific seed profile, the specific lab PDF, the specific proactive-message wording) defers to the Saturday morning window when Juan Manuel brings the anonymized real-patient data. Until then, every feature has to stand on its own with any input.
+
+**ROADMAP split:**
+
+The old all-in-one `ROADMAP.md` was too narrow for what the judges should see. Split into two:
+
+- [`ROADMAP.md`](../ROADMAP.md) at repo root — the **product vision**, multi-phase, capability-focused, proactivity engine + longitudinal memory + clinical accompaniment + equity dimension made explicit. What the judges and future readers see first.
+- [`docs/hackathon-plan.md`](./hackathon-plan.md) — the **operational plan** for the hackathon week, night by night, with the demo-specific hooks.
+
+**Quotables added:**
+
+- *"The product gets paid when you stay well. The system doesn't. That gap is our whole reason to exist."*
+- *"Proactivity is not a feature — it is a budget. Never more messages than value; never bombardment."*
+- *"Memory curated by the model, not dumped. The model decides what is worth keeping."*
+- *"The sanitary interpreter is not a translation table — it is a way of respecting that medicine is somebody else's language."*
+
+**Open items handed to the next session:**
+
+- `hc-frontend` is mid-flight building the `ScreeningCalendar` component and a mobile-responsive pass (profile as a bottom sheet, screenings as a second pill, composer pinned, safe-area-inset handled). Report expected shortly.
+- Juan Manuel to review the orchestrator system prompt at `apps/api/src/api/agents/runner.py`, especially: USPSTF 2024 breast-screening cadence, cervical cadence wording, urgent-value thresholds, §9 failure-mode recovery scripts.
+- Night 3 work (Act 2: multimodal PDF ingest + lab table) begins when a real anonymized lab PDF lands.
+- Night 4 work (fade transition + proactive message card + timeline) begins after Act 2 plumbing is green.

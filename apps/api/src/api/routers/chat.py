@@ -10,7 +10,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from api.agents.runner import run_chat_turn
-from api.agents.tools import get_profile
+from api.agents.tools import get_memory, get_profile, get_scheduled_screenings
 
 
 router = APIRouter(prefix="/api", tags=["chat"])
@@ -42,7 +42,11 @@ async def chat(request: ChatRequest) -> StreamingResponse:
         except Exception as exc:
             yield _format_sse({"type": "error", "message": str(exc)})
             return
+        # Full snapshot at turn close so the UI can reconcile regardless of
+        # which tool_use events it missed.
         yield _format_sse({"type": "profile_snapshot", "profile": get_profile()})
+        yield _format_sse({"type": "screenings_snapshot", "screenings": get_scheduled_screenings()})
+        yield _format_sse({"type": "memory_snapshot", "memory": get_memory()})
 
     return StreamingResponse(
         event_stream(),
@@ -57,3 +61,13 @@ async def chat(request: ChatRequest) -> StreamingResponse:
 @router.get("/profile")
 async def read_profile() -> dict[str, Any]:
     return {"profile": get_profile()}
+
+
+@router.get("/screenings")
+async def read_screenings() -> dict[str, Any]:
+    return {"screenings": get_scheduled_screenings()}
+
+
+@router.get("/memory")
+async def read_memory() -> dict[str, Any]:
+    return {"memory": get_memory()}
