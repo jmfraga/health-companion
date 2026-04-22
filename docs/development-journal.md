@@ -303,3 +303,55 @@ Our current `POST /api/simulate-months-later` endpoint is a tiny version of exac
 **Open overnight (Wed→Thu)**:
 
 `hc-backend` is queued to author the Managed Agents migration in the background. The main safety net is that the previous Messages-API version of `/api/simulate-months-later` is preserved; the Managed Agents version lands as a sibling endpoint until Juan Manuel flips the switch.
+
+---
+
+## Session 2 — Wednesday morning, April 22, 2026 · Founder feedback from the commute
+
+Juan Manuel opened the morning with rich, specific feedback before leaving for work — three concrete product signals and a set of longer-horizon reflections. Captured here as context for the next build sessions.
+
+### A real-world wearable case study joins the repo
+
+The last file Juan Manuel downloaded to his laptop before leaving was a six-day case study titled *"Colaboración Garmin + Claude — Gestión asistida por IA de una infección viral aguda y reingreso al ejercicio competitivo"* by Hans Laut (51, competitive amateur athlete). We pulled it into [`docs/references/caso_estudio_garmin_claude.docx`](./references/caso_estudio_garmin_claude.docx).
+
+Why it matters: it is a fully lived-through example of exactly the loop Health Companion productizes. A Garmin Enduro 2 provided continuous HRV / resting HR / respiratory rate / sleep score / stress / body battery. Claude interpreted the stream and conversation, inferred probabilities (not diagnoses), adjusted protocols daily, and staged a return-to-exercise plan with objective criteria — all with explicit uncertainty and explicit referral-to-physician boundaries. This is the playbook.
+
+**Decision**: wearable integration (Garmin, Apple Health, Google Fit / Health Connect) becomes a **Phase 1 priority** rather than Phase 2, and the roadmap's modalities thread now leans on "the wearable sees the dip before the user feels it" as the anticipation unlock.
+
+### Signal from a prospective user (audio message)
+
+A woman sent Juan Manuel a voice note reacting to the concept. Two asks landed clearly enough to become MVP bullets:
+
+1. **Privacy surface** — *"make a place in the app that tells me how you protect my privacy."*
+2. **Explicability surface** — *"at least basic: how does it work? how do I know it's grounded in recent evidence?"*
+
+Both become **Phase 0 (MVP) sections**, routable from the header:
+- `/about-your-privacy` — plain-language: what we store, what we encrypt, what never gets used for training, how export and delete work.
+- `/how-this-works` — plain-language: the model, the clinical sources cited (USPSTF / ACS / NICE / NCCN / ACC-AHA / ADA / Secretaría de Salud México), the "See reasoning" audit path, what we will never do.
+
+The same user commented that a hypochondriac might be calmed by the app's tone. Juan Manuel's counter: *"but we also need alarm data — suicide risk and medical emergencies — that suggest calling emergency services or an ambulance."* Already enforced by the orchestrator's hard rule 5, but **we add a visible emergency affordance** so the UI layer matches the prompt's safety posture. A persistent "Emergency?" control that opens region-specific numbers: 911 / 066 / 112 + mental-health crisis lines (988 US, SAPTEL 55-5259-8121 México). Not buried in a menu. This lands in Phase 0.
+
+### Founder reflections — the admin + research layer
+
+Juan Manuel's own reflection for the medium term: a **proper admin dashboard** that is *not only operations*. Two intertwined analytics axes:
+1. **Usage** — DAU / MAU, retention, cost per user, funnel by pillar.
+2. **Outcomes** — screenings scheduled vs completed, follow-ups kept, proactive messages sent vs acted-on, self-reported improvements, adverse events.
+
+And the part that turns this from a dashboard into an ethical commitment: **we use the outcome data to publish peer-reviewed analyses** — including unfavorable results. *"If the data says we are not helping, we say so publicly and course-correct."* That is the responsibility clause and it belongs in the product's DNA, not as marketing. Added to ROADMAP Phase 2 (admin-lite + outcome signals) and Phase 3 (real-world-evidence pipeline with academic partners).
+
+### MVP additions accepted
+
+Without stealing too much time from Act 1 + Act 2 polish, we accept three small but high-signal additions into Phase 0:
+
+1. **About-your-privacy** static surface — ~45 min.
+2. **How-this-works** static surface — ~45 min.
+3. **Emergency affordance** (persistent header control + modal with region-specific numbers) — ~60 min.
+
+Target: land during Thursday afternoon session once Night 4 P0 is green.
+
+### Quotables from the morning
+
+- *"Anticipation is the game. The watch sees the dip before the user feels it."*
+- *"Privacy has to be a place in the app, not a paragraph in the Terms of Service."*
+- *"Explicability is a competitive moat. Nobody else in the space is doing it well."*
+- ⭐ *"If the data says we are not helping, we say so publicly and course-correct."* (The responsibility clause — pitch-ready.)
