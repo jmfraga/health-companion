@@ -1,6 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+
+import { useAuth } from "@/lib/auth-context";
+import { getAccessToken } from "@/lib/supabase";
 
 type ChatMessage = {
   role: "user" | "assistant";
@@ -277,7 +281,15 @@ function BottomSheet({
 // Page
 // ---------------------------------------------------------------------------
 
-export default function ChatPage() {
+function ChatExperience() {
+  const { user, signOut } = useAuth();
+  const router = useRouter();
+
+  const handleSignOut = useCallback(async () => {
+    await signOut();
+    router.replace("/login");
+  }, [signOut, router]);
+
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [profile, setProfile] = useState<ProfileSnapshot>({});
   const [recentlyChanged, setRecentlyChanged] = useState<Set<string>>(new Set());
@@ -339,9 +351,17 @@ export default function ChatPage() {
     setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
 
     try {
+      const token = await getAccessToken();
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+
       const response = await fetch(`${API_URL}/api/chat`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({ messages: nextMessages }),
       });
 
@@ -497,9 +517,24 @@ export default function ChatPage() {
               Wellness, not a medical device.
             </p>
           </div>
-          <span className="hidden shrink-0 text-xs font-medium uppercase tracking-wider text-zinc-400 md:inline">
-            sprint 1 — plumbing
-          </span>
+          <div className="flex shrink-0 items-center gap-2 md:gap-3">
+            {user?.email && (
+              <span
+                className="hidden max-w-[180px] truncate text-xs text-zinc-500 md:inline"
+                title={user.email}
+              >
+                {user.email}
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={() => void handleSignOut()}
+              aria-label="Sign out"
+              className="inline-flex min-h-[36px] items-center rounded-full border border-zinc-200 bg-white px-3 text-xs font-medium text-zinc-600 transition hover:bg-zinc-50 active:bg-zinc-100"
+            >
+              Sign out
+            </button>
+          </div>
         </div>
       </header>
 
@@ -727,4 +762,54 @@ export default function ChatPage() {
       </BottomSheet>
     </div>
   );
+}
+
+// ---------------------------------------------------------------------------
+// Session guard wrapper (default export)
+// ---------------------------------------------------------------------------
+
+function ChatSkeleton() {
+  return (
+    <div
+      className="flex min-h-[100dvh] flex-col bg-zinc-50 text-zinc-900"
+      style={{ paddingTop: "env(safe-area-inset-top)" }}
+    >
+      <header className="shrink-0 border-b border-zinc-200 bg-white">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 md:px-6 md:py-4">
+          <div className="h-5 w-40 animate-pulse rounded bg-zinc-200" />
+          <div className="h-8 w-20 animate-pulse rounded-full bg-zinc-100" />
+        </div>
+      </header>
+      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 px-3 py-3 md:grid md:grid-cols-[1fr_340px] md:gap-6 md:px-6 md:py-6">
+        <section className="flex min-h-[60vh] flex-1 flex-col rounded-xl border border-zinc-200 bg-white shadow-sm">
+          <div className="flex-1 space-y-3 px-4 py-4 md:px-6 md:py-5">
+            <div className="h-4 w-3/4 animate-pulse rounded bg-zinc-100" />
+            <div className="h-4 w-1/2 animate-pulse rounded bg-zinc-100" />
+            <div className="h-4 w-2/3 animate-pulse rounded bg-zinc-100" />
+          </div>
+        </section>
+        <aside className="hidden md:flex md:flex-col md:gap-4">
+          <div className="h-40 animate-pulse rounded-xl bg-white shadow-sm" />
+          <div className="h-40 animate-pulse rounded-xl bg-white shadow-sm" />
+        </aside>
+      </main>
+    </div>
+  );
+}
+
+export default function ChatPage() {
+  const { session, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && !session) {
+      router.replace("/login");
+    }
+  }, [loading, session, router]);
+
+  if (loading || !session) {
+    return <ChatSkeleton />;
+  }
+
+  return <ChatExperience />;
 }

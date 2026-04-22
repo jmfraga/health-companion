@@ -125,9 +125,9 @@ Target: MVP demoable end-to-end, demo video grabado, fiesta al atardecer.
 
 ## Scope freeze (non-negotiable for hackathon)
 
-**In MVP**: English UI, single seed profile (Laura), **in-memory state + fixtures**, single Opus 4.7 orchestrator with tool use, two demo acts, mobile-first PWA, regulatory disclaimers visible.
+**In MVP**: English UI, single seed profile (real anonymized patient on Saturday), **in-memory state + fixtures**, single Opus 4.7 orchestrator with tool use, two demo acts, mobile-first PWA, regulatory disclaimers visible, **Supabase Auth with Google OAuth** (promoted from deferred after Juan Manuel's night-2 vote — signals clinical-grade seriousness to the judges).
 
-**Held for post-submission**: Supabase persistence (already wired, waiting), real auth, multi-user, multi-language UI, wearable integrations, push notifications, payments, the other health pillars in full, native apps, Whisper post-consultation audio.
+**Held for post-submission**: Supabase Postgres persistence of clinical state (schema + migrations + RLS), multi-user, multi-language UI, wearable integrations, push notifications, payments, the other health pillars in full, native apps, Whisper post-consultation audio.
 
 **Non-negotiable clinical rules**: never diagnose, never prescribe, always refer. Wellness + education + referral. Matches FDA General Wellness, COFEPRIS wellness software, MDR wellness exemption.
 

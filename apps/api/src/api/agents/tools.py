@@ -205,6 +205,7 @@ _scheduled_screenings: list[dict[str, Any]] = []
 _episodic_memory: list[dict[str, Any]] = []
 _semantic_memory: list[dict[str, Any]] = []
 _biomarkers: list[dict[str, Any]] = []
+_timeline: list[dict[str, Any]] = []
 
 
 def reset_profile() -> None:
@@ -228,6 +229,11 @@ def reset_biomarkers() -> None:
     _biomarkers.clear()
 
 
+def reset_timeline() -> None:
+    """Clear the in-memory timeline."""
+    _timeline.clear()
+
+
 def get_biomarkers() -> list[dict[str, Any]]:
     """Return a shallow copy of the biomarker log."""
     return list(_biomarkers)
@@ -249,6 +255,46 @@ def get_memory() -> dict[str, list[dict[str, Any]]]:
         "episodic": list(_episodic_memory),
         "semantic": list(_semantic_memory),
     }
+
+
+def get_timeline() -> list[dict[str, Any]]:
+    """Return a shallow copy of the timeline, sorted by ``occurred_on``.
+
+    The frontend's ``HealthTimeline`` widget renders this list chronologically.
+    Events without a valid ``occurred_on`` sink to the bottom.
+    """
+    return sorted(
+        _timeline,
+        key=lambda e: (e.get("occurred_on") or "", e.get("created_at") or ""),
+    )
+
+
+def append_timeline_event(
+    event_type: str,
+    payload: dict[str, Any],
+    occurred_on: str,
+) -> dict[str, Any]:
+    """Append a timeline event and return the stored entry.
+
+    Parameters
+    ----------
+    event_type:
+        Semantic tag for the entry — e.g. ``"onboarding"``, ``"lab_report"``,
+        ``"screening_scheduled"``, ``"proactive_message"``.
+    payload:
+        Arbitrary structured data the UI renders inside the timeline card.
+    occurred_on:
+        ISO 8601 date (``YYYY-MM-DD``) the event represents in the user's
+        health narrative. May be in the past or the simulated future.
+    """
+    entry = {
+        "event_type": event_type,
+        "payload": payload,
+        "occurred_on": occurred_on,
+        "created_at": datetime.now(UTC).isoformat(),
+    }
+    _timeline.append(entry)
+    return entry
 
 
 # ---------------------------------------------------------------------------

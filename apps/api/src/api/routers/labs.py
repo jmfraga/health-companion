@@ -11,6 +11,7 @@ from __future__ import annotations
 import base64
 import json
 from collections.abc import AsyncIterator
+from datetime import UTC, datetime
 from typing import Any
 
 from anthropic import AsyncAnthropic
@@ -18,7 +19,13 @@ from fastapi import APIRouter, File, Form, UploadFile
 from fastapi.responses import StreamingResponse
 
 from api.agents.runner import MODEL, SYSTEM_PROMPT, _serialize_block
-from api.agents.tools import execute_tool, get_biomarkers, get_profile
+from api.agents.tools import (
+    append_timeline_event,
+    execute_tool,
+    get_biomarkers,
+    get_profile,
+    get_timeline,
+)
 from api.config import get_settings
 from api.schemas.lab import LabAnalysis
 
@@ -364,8 +371,31 @@ async def ingest_pdf(
                     {"type": "lab_analysis", "analysis": submitted_analysis}
                 )
 
+                # Timeline entry — one event per successful lab ingest so the
+                # HealthTimeline widget shows lab uploads alongside other beats.
+                today = datetime.now(UTC).date().isoformat()
+                occurred_on = (
+                    submitted_analysis.get("drawn_on")
+                    or submitted_analysis.get("sampled_on")
+                    or today
+                )
+                timeline_payload = {
+                    "summary": submitted_analysis.get("panel_summary")
+                    or "Lab report ingested.",
+                    "laboratory": submitted_analysis.get("laboratory"),
+                    "biomarker_count": len(get_biomarkers()),
+                    "file_name": file.filename,
+                }
+                if note:
+                    timeline_payload["note"] = note
+                timeline_entry = append_timeline_event(
+                    "lab_report", timeline_payload, occurred_on
+                )
+                yield _format_sse({"type": "timeline_event", **timeline_entry})
+
             yield _format_sse({"type": "biomarkers_snapshot", "biomarkers": get_biomarkers()})
             yield _format_sse({"type": "profile_snapshot", "profile": get_profile()})
+            yield _format_sse({"type": "timeline_snapshot", "timeline": get_timeline()})
             yield _format_sse({"type": "done"})
         except Exception as exc:
             yield _format_sse({"type": "error", "message": str(exc)})
