@@ -3,7 +3,7 @@
 > Entry document for Claude Code. Read BEFORE writing code.
 > Complements: `concept-v1.md` (vision) and `competitive-analysis-v1.md` (market).
 >
-> **Note**: this is v1 of the brief. The scope evolved after the first working session on April 21 — the demo was tightened from 4 acts to 2 acts and the runtime subagent fan-out was removed in favor of a single Opus 4.7 orchestrator with tool use. See `bitacora-desarrollo.md` for the current scope of record. This file is retained as the initial framing.
+> **Note**: this is v1 of the brief. The scope evolved after the first working session on April 21 — the demo was tightened from 4 acts to 2 acts and the runtime subagent fan-out was removed in favor of a single Opus 4.7 orchestrator with tool use. See `development-journal.md` for the current scope of record. This file is retained as the initial framing.
 >
 > **Author**: Dr. Juan Manuel Fraga Sastrías · April 2026
 > **Goal**: maximize the score across the hackathon's evaluation criteria.
@@ -36,7 +36,7 @@ Do not try to cover the five health pillars from `concept-v1`. The hackathon MVP
 ### Why this flow
 It combines **the three differentiating axes** of the product (longitudinal memory, proactivity, clinical accompaniment) in **3–5 minutes**, with **4 distinct wow moments** and 4 distinct uses of Opus 4.7.
 
-> **Update (April 21)**: in practice the demo was tightened to 2 acts (~45s + ~55s) to match a 3-minute presentation window. The four-act framing below is preserved for historical context. See `bitacora-desarrollo.md` for the acts that ship.
+> **Update (April 21)**: in practice the demo was tightened to 2 acts (~45s + ~55s) to match a 3-minute presentation window. The four-act framing below is preserved for historical context. See `development-journal.md` for the acts that ship.
 
 ### Demo script (live, in front of the judges)
 

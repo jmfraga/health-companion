@@ -35,7 +35,7 @@ The full product vision covers five health pillars (prevention, body, mind, risk
 
 Supabase + Postgres + Auth are scaffolded in `.env.example` and `config.py` for the post-submission migration path, but the hackathon demo runs on SQLite with no authentication and a single seed profile.
 
-Full architecture notes in [`docs/architecture.md`](./docs/architecture.md). Hackathon roadmap in [`ROADMAP.md`](./ROADMAP.md). The founder's thesis, product concept, competitive analysis, and the original hackathon brief live in [`docs/`](./docs) alongside a running development journal in [`docs/bitacora-desarrollo.md`](./docs/bitacora-desarrollo.md).
+Full architecture notes in [`docs/architecture.md`](./docs/architecture.md). Product vision in [`ROADMAP.md`](./ROADMAP.md); hackathon-week plan in [`docs/hackathon-plan.md`](./docs/hackathon-plan.md). The founder's thesis, product concept, competitive analysis, and the original hackathon brief live in [`docs/`](./docs) alongside the running [`docs/development-journal.md`](./docs/development-journal.md).
 
 ## How this was built
 

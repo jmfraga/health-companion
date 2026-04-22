@@ -1,16 +1,61 @@
-# Bitácora — Health Companion
+# Development Journal — Health Companion
 
-> Working journal of sessions between Juan Manuel Fraga and the team of agents.
-> **Purpose**: capture the ideas, decisions, and learnings that surface during the build. Raw material for the Sunday April 26 submission and for the story of the project beyond the hackathon.
-> The filename stays *bitácora* — Spanish for captain's log — as a nod to where the project was born. The content is English so judges and future readers can follow.
+> A running log of design decisions, build sessions, and the story behind the code.
+> **Purpose**: raw material for the Sunday April 26 hackathon submission, and the story of the project beyond the hackathon.
+> Kept in English so judges and future readers can follow. Discussions between Juan Manuel and the agents happen in Spanish; the journal captures them in English.
 
-## Conventions
+---
 
-- One entry per session, in chronological order.
+## Agent architecture — two layers, same pattern
+
+Health Companion uses agents in two distinct places. The judges need to see the distinction, and the code reflects it strictly.
+
+### Layer 1 — Product runtime (one agent, visible to the user)
+
+The user ever interacts with **one** agent: a single **Claude Opus 4.7 orchestrator** with tool use and extended thinking. It:
+
+- Talks to the user in a warm, clinical voice (system prompt authored by `hc-clinical`, audited by Juan Manuel).
+- Calls typed tools as it learns things: `save_profile_field`, `schedule_screening`, `fetch_guidelines_for_age_sex`, `log_biomarker`, `remember`, `submit_lab_analysis` (ingest-pdf only), `submit_proactive_message` (simulate-months-later only).
+- Streams its reasoning on a dedicated SSE channel so the "See reasoning" disclosure can surface Opus 4.7's extended thinking as a clinical artifact.
+- Reads PDFs directly via Opus 4.7's multimodal input — no OCR library in between.
+- Curates memory (episodic vs semantic) by calling `remember`, not by dumping every turn to storage.
+
+There are **no runtime subagents**. Earlier design iterations considered a fan-out to three specialist subagents (Screening / Lifestyle / Mental Health); that shape was cut on day one in favor of a single orchestrator whose reasoning is legible through extended thinking. The specialists' knowledge lives inside the orchestrator's system prompt and is visible when the user expands "See reasoning".
+
+### Layer 2 — Development team (four agents, never visible to the user)
+
+The product is built by a coordinated team of **Claude Code subagents**, each with a role brief in `~/.claude/agents/hc-*.md`. They never appear inside the product — they are how the product is made.
+
+| Agent | Role | Model | Invocation |
+|-------|------|-------|------------|
+| `hc-coordinator` | Product lead, thesis guardian, delegates to specialists, owns `ROADMAP.md` and the demo script. Juan Manuel's copilot. | opus | Used for every design decision, every scope call. |
+| `hc-frontend` | Next.js 15 + Tailwind + shadcn/ui. Chat UI, live profile panel, see-reasoning disclosure, PDF drop-zone, lab table, timeline, auth UI. Mobile-first. | sonnet | Invoked for each UI slice. |
+| `hc-backend` | FastAPI + Python. Orchestrator wiring, streaming SSE, tool runtime, multimodal PDF endpoint, JWT middleware, simulate-months-later. | sonnet | Invoked for each API slice. |
+| `hc-clinical` | Clinical voice, guardrails, sanitary-interpreter rules, screening schedules, proactive-message wording. Every clinical string passes through here; **Juan Manuel audits**. | opus | Invoked whenever user-facing clinical language changes. |
+
+A fifth development agent, `hc-debugger`, remains provisional — spun up only when the first real integration crack appears.
+
+### The fifth agent — Juan Manuel
+
+Juan Manuel Fraga — primary-care physician, director of a cancer center in Querétaro — is the **fifth agent** on the development team. He is not "the user". He is the clinician translating the experience he cultivates with his real patients into something digital and replicable. The four Claude Code agents draft; he audits. Every clinical decision carries his voice.
+
+### The meta-move that the submission narrates
+
+> *We built this health companion using the same coordinator-plus-specialists pattern we think the eventual product team will need. We learned to build health-as-a-team by building it as a team.*
+
+The product's single-agent runtime (Layer 1) and the development team's multi-agent pattern (Layer 2) share a common shape: a coordinator working with specialists. In Layer 2 the specialists are humans and subagents; in Layer 1 they are the orchestrator's own system prompt + extended thinking. Over time, as the product grows, some of Layer 2's specialists will migrate into Layer 1 as Managed Agents or additional runtime agents. For the hackathon MVP, the runtime stays intentionally simple.
+
+---
+
+## Conventions for this journal
+
+- One entry per session, chronological.
 - At the end of each session, `hc-coordinator` drafts: (a) quotable one-liners, (b) decisions made, (c) what shifted since yesterday, (d) what's next.
-- Juan Manuel reviews and adds what the agent missed — his voice is the definitive one.
-- Entries are cumulative. Never overwritten. When a decision is reversed, the new session documents the reversal without erasing the original.
-- Quotables that land verbatim in the pitch or the demo video are marked with ⭐ in the log.
+- Juan Manuel reviews and adds what the agent missed — his voice is definitive.
+- Entries are cumulative. Never overwritten. When a decision is reversed, the new session documents the reversal without erasing the original. The evolution of thinking is itself part of the story.
+- Quotables that land verbatim in the pitch or the demo video are marked with ⭐.
+
+> Filename history: originally `bitacora.md`, then `bitacora-desarrollo.md`, now `development-journal.md`. The name drift mirrors the scope drift of the first 24 hours; the content is continuous.
 
 ---
 

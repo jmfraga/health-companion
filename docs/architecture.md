@@ -61,7 +61,7 @@ health-companion/
 ├── docs/
 │   ├── agents.md
 │   ├── architecture.md
-│   ├── bitacora-desarrollo.md
+│   ├── development-journal.md
 │   ├── concept-v1.md
 │   ├── competitive-analysis-v1.md
 │   ├── hackathon-brief-for-claude-code-v1.md

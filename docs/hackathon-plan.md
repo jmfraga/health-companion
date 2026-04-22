@@ -53,7 +53,7 @@ SSE event channels:
 | Repo public with Apache 2.0 | ✅ |
 | Monorepo Next.js 15 + FastAPI scaffolded | ✅ |
 | Docs (thesis, concept, competitive, brief) in English | ✅ |
-| `bitacora-desarrollo.md` started | ✅ |
+| `development-journal.md` started | ✅ |
 | Four development agents (`hc-*`) defined | ✅ |
 | Anthropic API key + Opus 4.7 verified | ✅ |
 | Supabase Postgres connected (session pooler `aws-1-us-east-2`) | ✅ (held for post-hackathon) |
