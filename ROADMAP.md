@@ -69,9 +69,11 @@ Surface area with the clinical system:
 ### 5. Modalities
 - **v0.x**: text-first chat.
 - **Voice**: conversational voice input and TTS output, especially for older users and during consultations.
-- **Image**: photos of labs, medication labels, skin lesions (for "worth showing your doctor" framing, never for diagnosis).
+- **Image — photos of anything health-relevant**: lab printouts (when the PDF isn't available), medication labels and pill bottles, skin lesions (framed as "worth showing your doctor", never diagnostic), *and — critically — photos of any device that is not connected to the phone*: a bathroom scale, a wrist or upper-arm blood-pressure monitor, a pulse oximeter, a glucometer, a thermometer, the face of a non-syncing fitness watch. You don't need a $300 connected scale — you point the camera at the scale you already own, Opus 4.7 reads the display, the value lands in `log_biomarker` with source `photo`. This is equity in one gesture: the companion works with the equipment a family already has.
 - **Wearables — continuous biometrics** (first-class, not an afterthought): Garmin (Enduro, Forerunner, Fenix), Apple Watch + HealthKit, Google Fit / Health Connect, Oura, Fitbit. Stream HRV, resting heart rate, nocturnal heart rate, respiratory rate, sleep stages, stress, body battery, SpO₂ into the companion as ambient context. **The case that ships this thread** lives in [`docs/references/caso_estudio_garmin_claude.docx`](./docs/references/caso_estudio_garmin_claude.docx): a six-day real-world collaboration between a Garmin Enduro 2 and Claude that managed an acute viral infection and staged a return-to-exercise plan for a 51-year-old competitive amateur. This exact loop — continuous wearable data + conversational clinical reasoning with explicit uncertainty + staged protocols with objective daily criteria — is what we productize. *Anticipation is the game*: the wearable sees the dip before the user feels it, and the companion surfaces the conversation at the right time.
 - **Documents**: lab PDFs, insurance policies, imaging reports, consultation notes.
+
+The photo-of-device path and the wearable-API path coexist on purpose: wearable APIs give us continuity, photos give us coverage. Most of the world will use both — a connected watch for trend, a photo of the abuela's bathroom scale when she visits.
 
 ### 6. Clinical transparency
 Every clinical response can be opened to reveal the reasoning behind it. Extended thinking, exposed as a clinical artifact ("See reasoning"). Over time this becomes the trust layer: the user can look over the companion's shoulder any time they want, and doctors can verify the logic that was shown to their patient.
@@ -116,7 +118,7 @@ The first breath. Demonstrates the product's soul inside a 3-minute presentation
 - Conversational onboarding with live profile extraction visible via tool-use events.
 - Preventive screening recommendations with cited sources.
 - Extended thinking exposed as "See reasoning" disclosure.
-- Multimodal ingestion of a lab report directly by Opus 4.7 (no OCR layer).
+- Multimodal ingestion of a lab report directly by Opus 4.7 (no OCR layer) — accepts PDF *and* photos (gallery or camera capture) of lab printouts, scales, blood-pressure monitors, watch faces, glucometers, and any other health device display. Extracted values flow through `log_biomarker`.
 - Longitudinal memory simulation ("months later") demonstrating the moat.
 - Proactive message triggered by context (age + family history + prior lab).
 - PWA, mobile-responsive.

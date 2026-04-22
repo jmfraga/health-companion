@@ -349,9 +349,30 @@ Without stealing too much time from Act 1 + Act 2 polish, we accept three small 
 
 Target: land during Thursday afternoon session once Night 4 P0 is green.
 
+### Photos of non-connected devices — the equity unlock
+
+One more signal from the morning that becomes a capability thread:
+
+> *"Photos should also work for the scale, the watch, the BP monitor — anything that isn't integrated with the phone."*
+
+That one sentence turns our PDF-ingest path into the backbone of a much broader idea: **any health device with a legible display becomes an input** to Health Companion, whether it is connected or not. A bathroom scale. An upper-arm blood-pressure cuff. A wrist oximeter. A glucometer. A thermometer. The face of a non-syncing fitness watch. The user snaps a photo (gallery or direct camera capture), Opus 4.7 reads the display multimodally, the value lands in `log_biomarker` with `source = "photo"`.
+
+Why this matters at the strategy level:
+- **Radical equity.** A family that owns a $15 bathroom scale gets the same feature richness as a family that owns a $300 connected scale. This is Phase 1 LatAm positioning made real at the product-interaction layer.
+- **Universality across devices and brands.** We don't need a partnership with every device maker. The display is the contract.
+- **Composable with the wearable thread.** Connected APIs give us continuity (every night of HRV). Photos give us coverage (grandma's Omron that the user photographs when visiting). Most users will use both.
+
+Implementation-wise it is an additive pass on the existing multimodal pipeline:
+- Backend: accept images in the ingest endpoint alongside PDFs; the same Opus 4.7 multimodal call handles both with a small prompt tweak.
+- Frontend: mobile camera capture (`<input type="file" accept="image/*" capture="environment">`) + gallery picker in the same upload affordance.
+- Prompt: a short extension for `hc-clinical` — "if the image shows a device display, identify the device type, extract the reading(s), and log via `log_biomarker`".
+
+**Added to Phase 0 MVP** as a stretch if Thursday afternoon has room after the privacy + explicability + emergency affordances land; otherwise **Phase 1 day-one** item.
+
 ### Quotables from the morning
 
 - *"Anticipation is the game. The watch sees the dip before the user feels it."*
 - *"Privacy has to be a place in the app, not a paragraph in the Terms of Service."*
 - *"Explicability is a competitive moat. Nobody else in the space is doing it well."*
 - ⭐ *"If the data says we are not helping, we say so publicly and course-correct."* (The responsibility clause — pitch-ready.)
+- ⭐ *"You don't need a $300 connected scale. Your bathroom scale works. Your aunt's blood-pressure monitor works. Take a photo."* (Equity framed as a product feature — pitch-ready.)
