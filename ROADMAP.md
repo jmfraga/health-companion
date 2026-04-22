@@ -106,6 +106,29 @@ The product works in both high- and low-resource contexts. In low-resource conte
 ### 12. Regulatory posture
 Wellness + education + referral. Never a medical device. Documented compliance with FDA General Wellness, COFEPRIS wellness classification, MDR wellness exemption. Clinician-led content review is part of every release.
 
+### 13. Living state document
+The profile, the screenings, the biomarkers, the timeline — together they are not a chat log, they are a **structured, consultable health record** the user and their treating physician can read at any moment. Every new capability thread feeds into this document. The document is the product. Chat is the input method, "See reasoning" is the audit layer, but the artifact that compounds value year over year is the state document itself.
+
+### 14. Behavioral follow-through (gap-of-action)
+Preventive health fails most often not because the user did not understand, but because the user did not act. Health Companion owes follow-through:
+- **Contextual reminders** with emotional register ("your dad's first MI was at 55 — the cardiologist visit you put off is one of the few things that could change that story"), not generic dates.
+- **Active verification** that pending studies were performed ("did the mammography happen last week?") — follow up on the follow-up.
+- **Celebration of follow-through** that is specific to what the user actually did, not a generic badge.
+- **Decision rules translated into executable protocols** ("if tomorrow the pain is worse, halve the volume") when the clinical ground supports them.
+- **Proxy indicators per condition** — simple, daily, equipment-free metrics the user can apply (the "handshake 0-10" pattern scaled to other conditions).
+- **Semantic-precision nudges** — help the user name themselves accurately: "tired" vs "injured", "discomfort" vs "pain", "fatigued" vs "exhausted" — because the doctor's fifteen minutes count for more when the patient walks in with precise language.
+
+### 15. Adoption paths — one product, one objective, two speeches
+Health Companion is *one* product with *one* thesis. Adoption happens through two complementary speeches, but the product underneath does not fork.
+
+- **The curious first-timer** (Laura-style onboarding): the entry point is anxiety relief and clarity — "your labs are not a verdict; here is what they say in plain English; here is what to ask your doctor". The product meets the user at *empower*, the first of the founder thesis's three educational goals.
+- **The already-engaged** (Hans-style onboarding): the entry point is depth and sophistication — "connect my ApoB trajectory with my training load and body composition". The product meets the user at *comprehend without jargon*, the third of the three goals.
+
+The goal of the first-timer path is that the user, in twelve months, arrives at the level of agency the already-engaged user started with. Same product, same capabilities, same moral commitment — the speech is the only difference, and it is a function of where the user is when they open the app, not of which tier they paid for. Pricing tiers exist; the clinical depth does not vary between them.
+
+### 16. False-reassurance guard (calibrated caution)
+LLMs tend to validate. In longitudinal health contexts that bias can be clinically dangerous — a good day is not a recovery milestone, a single in-range lab value is not a diagnosis resolved, an absence of symptoms is not the absence of disease. The clinical voice is trained and audited to **prefer calibrated caution over automatic positive reinforcement**. This appears in the orchestrator system prompt as an explicit anti-pattern ("never normalize a single good day into a recovery milestone"), and in the product UX as deliberate restraint on celebration copy — celebrate actions the user took, not outcomes that are still preliminary.
+
 ---
 
 ## Phases

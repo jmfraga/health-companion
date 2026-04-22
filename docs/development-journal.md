@@ -376,3 +376,72 @@ Implementation-wise it is an additive pass on the existing multimodal pipeline:
 - *"Explicability is a competitive moat. Nobody else in the space is doing it well."*
 - ⭐ *"If the data says we are not helping, we say so publicly and course-correct."* (The responsibility clause — pitch-ready.)
 - ⭐ *"You don't need a $300 connected scale. Your bathroom scale works. Your aunt's blood-pressure monitor works. Take a photo."* (Equity framed as a product feature — pitch-ready.)
+
+---
+
+## Session 3 — Wednesday late afternoon, April 22, 2026 · User feedback from Hans Laut, two angles
+
+Two feedback documents landed during the day, both written by **Hans Laut** (the same Hans whose Garmin case study lives in `docs/references/`). They read as two different angles on the same lived experience — one from his sophisticated-user / longevity-monitoring perspective, one from his rehabilitation process (medial epicondylitis). Both are in [`docs/references/user-feedback/`](./references/user-feedback/).
+
+Capturing real potential-user iteration during the hackathon week itself is part of the story we tell the judges on Sunday.
+
+### What Hans's feedback confirmed
+
+- **Longitudinal memory is not *a* feature — it is *the* feature.** His direct experience has already produced inferences no cold tracker would: eosinophilia over three years linked to post-COVID immune sequelae; low free testosterone explored against body composition and possible aromatization; the absence of a digestive change after an intentional dietary shift that reoriented the causal hypothesis. This is exactly the loop we claim and he can verify it.
+- **"Educate → contextualize → refer" holds up.** The clinical framing is regulatorily defensible in practice, not just on paper.
+- **Structured memory beats conversation history.** The element of highest value in his rehabilitation process was a document kept up-to-date session by session (pain indicators, decisions, reasoning, clinical evolution) — not a scrollable chat. Health Companion should generate and maintain exactly this kind of **living state document**, consultable at any moment by the user and by the treating physician.
+- **Semantic precision has clinical value.** "Tired elbow" versus "injured elbow"; "post-session sensitivity" versus "residual pain". A companion that helps the patient name themselves accurately produces better data for the clinical team and reduces the risk of normalizing alarm signals.
+- **Proxy indicators anchor follow-up.** The "handshake on a 0–10 scale" was simple, reproducible, daily, no equipment required. Designing condition-specific proxy indicators is a product thread, not just biomarkers from labs.
+- **Executable rules, not vague recommendations.** "If tomorrow the pain worsens, halve the volume" — a rule — beats "listen to your body" — a cliché. The product must translate clinical criteria into executable decision rules where possible.
+
+### What the feedback surfaced as gaps
+
+1. **The gap is behavioral, not cognitive.** Laura understands she needs the mammography — and still does not book it. "The most expensive gap in preventive health is not cognitive, it is behavioral." Health Companion needs a **follow-through layer** (contextual reminders with emotional register, active verification that pending studies were performed, real celebration of follow-through — not generic notifications), not just an education layer.
+
+2. **Longitudinal-memory architecture is the most under-appreciated technical challenge.** What happens when the user changes device, changes plan, or doesn't open the app for three months? Manual context-reloading at session start (Hans's current workaround) is not scalable. Persistent memory with a smart reactivation protocol is critical infrastructure.
+
+3. **The "never diagnose" model needs an explicit escalation protocol.** The formula works 90% of the time. The other 10% — the signal that needs urgent attention — is where the wellness classification is most vulnerable, regulatorily and ethically. We need visible, calibrated criteria distinguishing "handle with your doctor at your next visit" from "go to urgent care today". Our existing emergency affordance Phase-0 commitment gets sharper: it carries not only phone numbers but the **traffic-light criteria** so the user can read themselves into one of the three tiers on their own.
+
+4. **Longitudinal data is a privacy risk with existential scale.** A system accumulating clinical history, behavioral patterns, family history, and lab results over years is one of the most sensitive data assets that exists. The product must answer — in the app, not in the Terms — who owns the memory, what happens if the company is acquired, and what the data cannot be used for even by us. "Privacy as a first-class in-app surface" is already in Phase 0; the architecture behind it gets a dedicated commitment.
+
+5. **False-reassurance risk.** LLMs tend to validate. In rehabilitation — and by extension in any longitudinal preventive process — that bias can be dangerous: treating one good day as a recovery milestone when it is a preliminary data point can push a user to increase load prematurely. The clinical voice must prefer **calibrated caution over automatic positive reinforcement**. This becomes a new anti-pattern in the hc-clinical prompt, beside the existing "no moralizing" rule.
+
+6. **Pitch reframing — structured memory as the actual product.** *"The value is not in simulating the doctor. It is in being the system of record and reasoning that the doctor doesn't have time to maintain. The doctor sees the patient 15 minutes every two months. The companion has the complete context of the last eight weeks: which exercises were done, which load was tolerated, which variables shifted, which decisions were made and with what outcome. That asymmetry of information — well designed — is the product."* This is a pitch-line candidate for Sunday.
+
+### Founder framing clarification (Juan Manuel's note)
+
+On Hans's suggestion that there are "two segments" — the Laura-like mass market and a sophisticated-longevity premium tier — Juan Manuel reframed before we took that into the ROADMAP:
+
+> *"Tier premium: athletes, longevity, people more engaged in controlling their health. Mass market: meta is to turn them into people with the habits of the tier premium. So it is the same tier, different moment of adoption. Different sales speech, same objective: improve health."*
+
+This is **not** a two-product strategy. It is **one product, two adoption paths, one thesis**. The three educational goals of the founder thesis (empower → motivate → comprehend without jargon) apply to both paths: the Hans-path user already lives in *comprehend*; the Laura-path user starts at *empower* and the product moves them toward the same depth of engagement over time. The ROADMAP will describe this as an adoption thread, not as a market segmentation.
+
+### Adjustments accepted into the MVP/Phase-0 envelope
+
+- **Reinforce hc-clinical** with the false-reassurance guard — "never normalize a single good day into a recovery milestone; calibrated caution over automatic positive reinforcement."
+- **Emergency affordance, now with visible criteria** — beyond the phone numbers already queued, the affordance carries a short traffic-light readout: green = discuss at next visit, amber = call your doctor this week, red = go to urgent care / emergency services today. The thresholds come from the hc-clinical system prompt's §2.5 urgent-value list so the UI and the reasoning agree.
+- **Living state document framing** — our current profile + screenings + biomarkers + timeline is *already* a living state document. We make that legible to the judges and to users: the submission description and the in-product Explicability page both call out "this is not a chat log — it is a structured health record that the user and their doctor can consult at any moment."
+
+### Adjustments accepted into the ROADMAP (Phase 1 and later)
+
+- **Behavioral follow-through layer** — not just "reminder on date", but "did you actually do it, and how did it go?" with emotional register and celebration when it happens.
+- **Proxy indicators per condition** — a curated, ever-growing library of simple daily metrics the user can apply without equipment.
+- **Executable decision rules** — translate clinical criteria into if-then rules the user can act on autonomously.
+- **Contextual-variable capture** — peripheral, non-clinical variables (equipment changes, routine shifts, life events) get a lightweight logging path because causality is rarely linear in prevention and rehab.
+- **Longitudinal-memory resilience** — persistence architecture (Supabase already wired) plus a smart reactivation protocol for users who disappear and come back. "Welcome back. Here is what we were working on eight weeks ago."
+- **Privacy architecture in writing** — an in-app "What we cannot do with your data, even with your permission" section alongside the "About your privacy" page.
+- **Passive capture mechanisms** — for users with lower tech adherence, the product must work without expecting heroic daily self-report. Photo-of-device ingestion, wearable sync, and a calendar-aware cadence layer all feed this.
+
+### Deferred on purpose (per Juan Manuel)
+
+- **Dual-protagonist demo (Laura + Hans-like user)** — we keep the demo single-patient for now. Revisit when more of Act 2 polish has landed.
+- **Business-model decision** — we know the shape (freemium B2C + premium depth tier + long-term B2B2C insurer subsidy), but we do not lock it in until later in the week. The thesis ("the same product, two adoption paths, one objective") is the constraint the business model has to serve, not the other way around.
+
+### Quotables from this iteration
+
+- ⭐ *"The value is not in simulating the doctor — it is in being the structured memory and reasoning the doctor doesn't have time to maintain."* (Pitch-line candidate — Hans, via Jhana-voice.)
+- ⭐ *"The most expensive gap in preventive health is not cognitive, it is behavioral."*
+- *"One product, two adoption paths, one objective: improve health."* (Juan Manuel's reframe.)
+- *"Semantic precision has clinical value. Help the user name themselves accurately — it makes the doctor's 15 minutes count for more."*
+- *"Prefer calibrated caution to automatic positive reinforcement."* (New anti-pattern for hc-clinical.)
+- *"Privacy has to be a clause in the product, not a paragraph in the Terms."*
