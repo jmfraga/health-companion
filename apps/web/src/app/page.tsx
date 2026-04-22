@@ -5,11 +5,24 @@ import { useRouter } from "next/navigation";
 
 import { useAuth } from "@/lib/auth-context";
 import { getAccessToken } from "@/lib/supabase";
+import { LabDropZone } from "@/components/labs/LabDropZone";
+import { LabTable } from "@/components/labs/LabTable";
+import { MonthsLaterFade } from "@/components/proactive/MonthsLaterFade";
+import { ProactiveMessageCard } from "@/components/proactive/ProactiveMessageCard";
+import { HealthTimeline } from "@/components/timeline/HealthTimeline";
+import type {
+  Biomarker,
+  LabAnalysis,
+  ProactiveMessage,
+  TimelineEvent,
+} from "@/components/shared/types";
 
 type ChatMessage = {
-  role: "user" | "assistant";
+  role: "user" | "assistant" | "proactive" | "system";
   content: string;
   reasoning?: string;
+  labAnalysis?: LabAnalysis;
+  proactive?: ProactiveMessage;
 };
 
 type ProfileSnapshot = Record<string, unknown>;
@@ -27,7 +40,24 @@ type StreamEvent =
   | { type: "tool_result"; id: string; output?: Record<string, unknown>; error?: string }
   | { type: "profile_snapshot"; profile: ProfileSnapshot }
   | { type: "screenings_snapshot"; screenings: ScreeningEntry[] }
+  | { type: "biomarkers_snapshot"; biomarkers: Biomarker[] }
   | { type: "memory_snapshot"; memory: unknown }
+  | { type: "timeline_snapshot"; timeline: TimelineEvent[] }
+  | {
+      type: "timeline_event";
+      event_type: string;
+      payload: Record<string, unknown>;
+      occurred_on: string;
+      created_at: string;
+    }
+  | { type: "lab_analysis"; analysis: LabAnalysis }
+  | {
+      type: "proactive_message";
+      text: string;
+      context_refs: string[];
+      next_step: string;
+      months_later?: number;
+    }
   | { type: "reasoning_start" }
   | { type: "reasoning_delta"; text: string }
   | { type: "reasoning_stop" }
@@ -35,6 +65,12 @@ type StreamEvent =
   | { type: "error"; message: string };
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+
+// The Managed-Agents variant of the simulate endpoint is read from the env
+// so Juan Manuel can flip it without a redeploy. Defaults to the
+// Messages-API endpoint that already ships.
+const PROACTIVE_ENDPOINT =
+  process.env.NEXT_PUBLIC_PROACTIVE_ENDPOINT ?? "/api/simulate-months-later";
 
 // ---------------------------------------------------------------------------
 // Humanizers for the ScreeningCalendar
@@ -81,6 +117,10 @@ function formatDueBy(due: string | null | undefined): string {
 
 function screeningKey(s: ScreeningEntry): string {
   return `${s.kind}|${s.recommended_by}|${s.due_by ?? "null"}`;
+}
+
+function timelineKey(e: TimelineEvent): string {
+  return `${e.event_type}|${e.occurred_on}|${e.created_at}`;
 }
 
 function sortScreenings(list: ScreeningEntry[]): ScreeningEntry[] {
@@ -297,12 +337,22 @@ function ChatExperience() {
   const [recentlyAddedScreenings, setRecentlyAddedScreenings] = useState<Set<string>>(
     new Set()
   );
+  const [, setBiomarkers] = useState<Biomarker[]>([]);
+  const [timeline, setTimeline] = useState<TimelineEvent[]>([]);
+  const [recentlyAddedTimeline, setRecentlyAddedTimeline] = useState<Set<string>>(
+    new Set()
+  );
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [reasoningActiveIndex, setReasoningActiveIndex] = useState<number | null>(null);
   const [expandedReasoning, setExpandedReasoning] = useState<Set<number>>(new Set());
-  const [sheet, setSheet] = useState<null | "profile" | "screenings">(null);
+  const [sheet, setSheet] = useState<
+    null | "profile" | "screenings" | "timeline" | "upload"
+  >(null);
+  const [fadeActive, setFadeActive] = useState(false);
+  const [fadeLabel, setFadeLabel] = useState("3 months later");
+  const simulatePendingRef = useRef<number | null>(null);
   const transcriptRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -311,6 +361,29 @@ function ChatExperience() {
       behavior: "smooth",
     });
   }, [messages]);
+
+  // Hydrate timeline on mount so the widget is not empty on reload.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const token = await getAccessToken();
+        const headers: Record<string, string> = {};
+        if (token) headers.Authorization = `Bearer ${token}`;
+        const res = await fetch(`${API_URL}/api/timeline`, { headers });
+        if (!res.ok) return;
+        const body = (await res.json()) as { timeline?: TimelineEvent[] };
+        if (!cancelled && Array.isArray(body.timeline)) {
+          setTimeline(body.timeline);
+        }
+      } catch {
+        // Silent — timeline will hydrate on the first turn anyway.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const flashField = useCallback((field: string) => {
     setRecentlyChanged((prev) => new Set(prev).add(field));
@@ -333,6 +406,186 @@ function ChatExperience() {
       });
     }, 1800);
   }, []);
+
+  const flashTimeline = useCallback((key: string) => {
+    setRecentlyAddedTimeline((prev) => new Set(prev).add(key));
+    setTimeout(() => {
+      setRecentlyAddedTimeline((prev) => {
+        const next = new Set(prev);
+        next.delete(key);
+        return next;
+      });
+    }, 2400);
+  }, []);
+
+  // ---------------------------------------------------------------------
+  // Shared SSE event handler — used by chat, lab drop zone, and simulate.
+  // ---------------------------------------------------------------------
+
+  const applyEvent = useCallback(
+    (event: StreamEvent) => {
+      if (event.type === "message_delta") {
+        setMessages((prev) => {
+          const copy = [...prev];
+          const last = copy[copy.length - 1];
+          if (last?.role === "assistant" || last?.role === "proactive") {
+            copy[copy.length - 1] = { ...last, content: last.content + event.text };
+          }
+          return copy;
+        });
+      } else if (event.type === "tool_use") {
+        if (event.name === "save_profile_field") {
+          const field = String((event.input as Record<string, unknown>).field ?? "");
+          const value = (event.input as Record<string, unknown>).value;
+          if (field) {
+            setProfile((prev) => ({ ...prev, [field]: value }));
+            flashField(field);
+          }
+        } else if (event.name === "schedule_screening") {
+          const inp = event.input as Record<string, unknown>;
+          const kind = typeof inp.kind === "string" ? inp.kind : "";
+          const recommended_by =
+            typeof inp.recommended_by === "string" ? inp.recommended_by : "";
+          const due_by =
+            typeof inp.due_by === "string" ? inp.due_by : null;
+          if (kind) {
+            const entry: ScreeningEntry = { kind, recommended_by, due_by };
+            const key = screeningKey(entry);
+            setScreenings((prev) => {
+              if (prev.some((s) => screeningKey(s) === key)) return prev;
+              return [...prev, entry];
+            });
+            flashScreening(key);
+          }
+        } else if (event.name === "log_biomarker") {
+          const inp = event.input as Biomarker;
+          setBiomarkers((prev) => [...prev, inp]);
+        }
+      } else if (event.type === "profile_snapshot") {
+        setProfile(event.profile);
+      } else if (event.type === "screenings_snapshot") {
+        setScreenings((prev) => {
+          const seen = new Set(prev.map(screeningKey));
+          const merged = [...prev];
+          for (const s of event.screenings) {
+            const k = screeningKey(s);
+            if (!seen.has(k)) {
+              merged.push(s);
+              seen.add(k);
+              flashScreening(k);
+            }
+          }
+          return merged;
+        });
+      } else if (event.type === "biomarkers_snapshot") {
+        setBiomarkers(event.biomarkers);
+      } else if (event.type === "timeline_snapshot") {
+        setTimeline((prev) => {
+          const seen = new Set(prev.map(timelineKey));
+          const merged = [...prev];
+          for (const e of event.timeline) {
+            const k = timelineKey(e);
+            if (!seen.has(k)) {
+              merged.push(e);
+              seen.add(k);
+              flashTimeline(k);
+            }
+          }
+          return merged;
+        });
+      } else if (event.type === "timeline_event") {
+        const entry: TimelineEvent = {
+          event_type: event.event_type,
+          payload: event.payload,
+          occurred_on: event.occurred_on,
+          created_at: event.created_at,
+        };
+        const k = timelineKey(entry);
+        setTimeline((prev) => {
+          if (prev.some((e) => timelineKey(e) === k)) return prev;
+          return [...prev, entry];
+        });
+        flashTimeline(k);
+      } else if (event.type === "lab_analysis") {
+        // Attach the structured analysis to the last assistant message, or
+        // append a new one if none is in flight.
+        setMessages((prev) => {
+          const copy = [...prev];
+          const lastIdx = copy.length - 1;
+          const last = copy[lastIdx];
+          if (last && last.role === "assistant") {
+            copy[lastIdx] = { ...last, labAnalysis: event.analysis };
+            return copy;
+          }
+          copy.push({
+            role: "assistant",
+            content: "",
+            labAnalysis: event.analysis,
+          });
+          return copy;
+        });
+      } else if (event.type === "proactive_message") {
+        const payload: ProactiveMessage = {
+          text: event.text,
+          context_refs: event.context_refs ?? [],
+          next_step: event.next_step ?? "",
+          months_later: event.months_later,
+        };
+        setMessages((prev) => {
+          const copy = [...prev];
+          const lastIdx = copy.length - 1;
+          const last = copy[lastIdx];
+          // If we were streaming into a placeholder "proactive" bubble,
+          // upgrade it with the structured payload. Otherwise append.
+          if (last && last.role === "proactive") {
+            copy[lastIdx] = {
+              ...last,
+              proactive: payload,
+              // Prefer the streamed text we already have.
+              content: last.content || payload.text,
+            };
+            return copy;
+          }
+          copy.push({
+            role: "proactive",
+            content: payload.text,
+            proactive: payload,
+          });
+          return copy;
+        });
+      } else if (event.type === "reasoning_start") {
+        setMessages((prev) => {
+          const idx = prev.length - 1;
+          if (idx >= 0 && (prev[idx].role === "assistant" || prev[idx].role === "proactive")) {
+            setReasoningActiveIndex(idx);
+          }
+          return prev;
+        });
+      } else if (event.type === "reasoning_delta") {
+        setMessages((prev) => {
+          const copy = [...prev];
+          const lastIdx = copy.length - 1;
+          const last = copy[lastIdx];
+          if (last?.role === "assistant" || last?.role === "proactive") {
+            copy[lastIdx] = {
+              ...last,
+              reasoning: (last.reasoning ?? "") + event.text,
+            };
+          }
+          return copy;
+        });
+      } else if (event.type === "reasoning_stop") {
+        setReasoningActiveIndex(null);
+      } else if (event.type === "error") {
+        setError(event.message);
+      }
+    },
+    [flashField, flashScreening, flashTimeline]
+  );
+
+  // ---------------------------------------------------------------------
+  // Chat send
+  // ---------------------------------------------------------------------
 
   const send = useCallback(async () => {
     const trimmed = input.trim();
@@ -359,10 +612,15 @@ function ChatExperience() {
         headers.Authorization = `Bearer ${token}`;
       }
 
+      // Only send the role/content pairs the API expects.
+      const wirePayload = nextMessages
+        .filter((m) => m.role === "user" || m.role === "assistant")
+        .map((m) => ({ role: m.role, content: m.content }));
+
       const response = await fetch(`${API_URL}/api/chat`, {
         method: "POST",
         headers,
-        body: JSON.stringify({ messages: nextMessages }),
+        body: JSON.stringify({ messages: wirePayload }),
       });
 
       if (!response.ok || !response.body) {
@@ -392,83 +650,103 @@ function ChatExperience() {
           } catch {
             continue;
           }
+          applyEvent(event);
+        }
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setError(message);
+    } finally {
+      setBusy(false);
+      setReasoningActiveIndex(null);
+    }
+  }, [input, busy, messages, applyEvent]);
 
-          if (event.type === "message_delta") {
-            setMessages((prev) => {
-              const copy = [...prev];
-              const last = copy[copy.length - 1];
-              if (last?.role === "assistant") {
-                copy[copy.length - 1] = { ...last, content: last.content + event.text };
-              }
-              return copy;
-            });
-          } else if (event.type === "tool_use") {
-            if (event.name === "save_profile_field") {
-              const field = String((event.input as Record<string, unknown>).field ?? "");
-              const value = (event.input as Record<string, unknown>).value;
-              if (field) {
-                setProfile((prev) => ({ ...prev, [field]: value }));
-                flashField(field);
-              }
-            } else if (event.name === "schedule_screening") {
-              const inp = event.input as Record<string, unknown>;
-              const kind = typeof inp.kind === "string" ? inp.kind : "";
-              const recommended_by =
-                typeof inp.recommended_by === "string" ? inp.recommended_by : "";
-              const due_by =
-                typeof inp.due_by === "string" ? inp.due_by : null;
-              if (kind) {
-                const entry: ScreeningEntry = { kind, recommended_by, due_by };
-                const key = screeningKey(entry);
-                setScreenings((prev) => {
-                  if (prev.some((s) => screeningKey(s) === key)) return prev;
-                  return [...prev, entry];
-                });
-                flashScreening(key);
-              }
-            }
-          } else if (event.type === "profile_snapshot") {
-            setProfile(event.profile);
-          } else if (event.type === "screenings_snapshot") {
-            // Reconcile: add any we missed without disturbing flash state.
-            setScreenings((prev) => {
-              const seen = new Set(prev.map(screeningKey));
-              const merged = [...prev];
-              for (const s of event.screenings) {
-                const k = screeningKey(s);
-                if (!seen.has(k)) {
-                  merged.push(s);
-                  seen.add(k);
-                  flashScreening(k);
-                }
-              }
-              return merged;
-            });
-          } else if (event.type === "reasoning_start") {
-            setMessages((prev) => {
-              const idx = prev.length - 1;
-              if (idx >= 0 && prev[idx].role === "assistant") {
-                setReasoningActiveIndex(idx);
-              }
-              return prev;
-            });
-          } else if (event.type === "reasoning_delta") {
-            setMessages((prev) => {
-              const copy = [...prev];
-              const lastIdx = copy.length - 1;
-              const last = copy[lastIdx];
-              if (last?.role === "assistant") {
-                copy[lastIdx] = {
-                  ...last,
-                  reasoning: (last.reasoning ?? "") + event.text,
-                };
-              }
-              return copy;
-            });
-          } else if (event.type === "reasoning_stop") {
-            setReasoningActiveIndex(null);
-          } else if (event.type === "error") {
-            setError(event.message);
+  // ---------------------------------------------------------------------
+  // Lab drop-zone plumbing
+  // ---------------------------------------------------------------------
+
+  const onLabStart = useCallback((file: File) => {
+    setBusy(true);
+    setError(null);
+    setSheet(null);
+    setMessages((prev) => [
+      ...prev,
+      {
+        role: "user",
+        content: `Uploaded a lab report · ${file.name}`,
+      },
+      { role: "assistant", content: "" },
+    ]);
+  }, []);
+
+  const onLabEvent = useCallback(
+    (raw: Record<string, unknown>) => {
+      applyEvent(raw as StreamEvent);
+    },
+    [applyEvent]
+  );
+
+  const onLabError = useCallback((msg: string) => {
+    setError(msg);
+  }, []);
+
+  const onLabDone = useCallback(() => {
+    setBusy(false);
+    setReasoningActiveIndex(null);
+  }, []);
+
+  // ---------------------------------------------------------------------
+  // Simulate-months-later trigger
+  // ---------------------------------------------------------------------
+
+  const runSimulate = useCallback(async () => {
+    if (busy) return;
+    const months = 3;
+    setError(null);
+    setBusy(true);
+
+    try {
+      const token = await getAccessToken();
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (token) headers.Authorization = `Bearer ${token}`;
+
+      // Open a placeholder proactive bubble so streaming text has a home.
+      setMessages((prev) => [...prev, { role: "proactive", content: "" }]);
+
+      const response = await fetch(`${API_URL}${PROACTIVE_ENDPOINT}`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ months }),
+      });
+
+      if (!response.ok || !response.body) {
+        throw new Error(`Proactive simulate failed (${response.status})`);
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        let sep: number;
+        while ((sep = buffer.indexOf("\n\n")) !== -1) {
+          const raw = buffer.slice(0, sep);
+          buffer = buffer.slice(sep + 2);
+          if (!raw.startsWith("data:")) continue;
+          const payload = raw.slice(5).trim();
+          if (!payload) continue;
+          try {
+            const event = JSON.parse(payload) as StreamEvent;
+            applyEvent(event);
+          } catch {
+            // keepalive or malformed — skip.
           }
         }
       }
@@ -479,7 +757,26 @@ function ChatExperience() {
       setBusy(false);
       setReasoningActiveIndex(null);
     }
-  }, [input, busy, messages, flashField, flashScreening]);
+  }, [busy, applyEvent]);
+
+  const triggerSimulate = useCallback(() => {
+    if (busy || fadeActive) return;
+    const months = 3;
+    simulatePendingRef.current = months;
+    setFadeLabel(`${months} months later`);
+    setFadeActive(true);
+  }, [busy, fadeActive]);
+
+  const onFadeMidpoint = useCallback(() => {
+    // Fire the network call while the overlay is opaque so the judges feel
+    // the cut; the stream lands visually just as the overlay fades out.
+    void runSimulate();
+  }, [runSimulate]);
+
+  const onFadeComplete = useCallback(() => {
+    setFadeActive(false);
+    simulatePendingRef.current = null;
+  }, []);
 
   const toggleReasoning = useCallback((idx: number) => {
     setExpandedReasoning((prev) => {
@@ -495,6 +792,7 @@ function ChatExperience() {
 
   const profileCount = Object.keys(profile).length;
   const screeningCount = screenings.length;
+  const timelineCount = timeline.length;
 
   return (
     <div
@@ -518,6 +816,29 @@ function ChatExperience() {
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-2 md:gap-3">
+            <button
+              type="button"
+              onClick={triggerSimulate}
+              disabled={busy || fadeActive}
+              aria-label="Simulate three months later"
+              title="Simulate: 3 months later"
+              className="inline-flex min-h-[36px] items-center gap-1.5 rounded-full border border-dashed border-zinc-300 bg-white px-3 text-[11px] font-medium text-zinc-600 transition hover:border-amber-300 hover:bg-amber-50 hover:text-amber-800 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <svg
+                aria-hidden
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                className="h-3.5 w-3.5"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 3.5a6.5 6.5 0 1 0 6.32 8.06.75.75 0 1 1 1.46.35A8 8 0 1 1 10 2a7.97 7.97 0 0 1 6 2.74V3.75a.75.75 0 0 1 1.5 0V7a.75.75 0 0 1-.75.75H13.5a.75.75 0 0 1 0-1.5h1.81A6.47 6.47 0 0 0 10 3.5Z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              <span className="hidden sm:inline">Simulate: 3 months later</span>
+              <span className="sm:hidden">+3 months</span>
+            </button>
             {user?.email && (
               <span
                 className="hidden max-w-[180px] truncate text-xs text-zinc-500 md:inline"
@@ -555,23 +876,85 @@ function ChatExperience() {
             )}
             {messages.map((m, i) => {
               const hasReasoning =
-                m.role === "assistant" && !!m.reasoning && m.reasoning.length > 0;
+                (m.role === "assistant" || m.role === "proactive") &&
+                !!m.reasoning &&
+                m.reasoning.length > 0;
               const isReasoningActive = reasoningActiveIndex === i;
               const isExpanded = expandedReasoning.has(i);
+
+              // Proactive message bubble: dedicated card, full width.
+              if (m.role === "proactive") {
+                return (
+                  <div key={i} className="mr-auto flex w-full flex-col items-start">
+                    {m.proactive ? (
+                      <ProactiveMessageCard message={m.proactive} />
+                    ) : (
+                      <div className="w-full rounded-2xl border border-amber-200 bg-amber-50/70 px-4 py-3 text-sm text-amber-900">
+                        {m.content || (
+                          <span className="inline-flex items-center gap-1 text-amber-500">
+                            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-400" />
+                            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-400 [animation-delay:150ms]" />
+                            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-400 [animation-delay:300ms]" />
+                          </span>
+                        )}
+                      </div>
+                    )}
+                    {(hasReasoning || isReasoningActive) && (
+                      <div className="mt-1.5 w-full">
+                        <button
+                          type="button"
+                          onClick={() => toggleReasoning(i)}
+                          aria-expanded={isExpanded}
+                          className="inline-flex min-h-[32px] items-center gap-1.5 rounded-md px-2 py-1 text-[12px] font-medium text-amber-700 transition-colors hover:bg-amber-50 hover:text-amber-900"
+                        >
+                          <svg
+                            aria-hidden="true"
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                            className={
+                              "h-3 w-3 transition-transform " +
+                              (isExpanded ? "rotate-90" : "rotate-0")
+                            }
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M7.21 14.77a.75.75 0 0 1 .02-1.06L10.44 10 7.23 6.29a.75.75 0 1 1 1.08-1.04l3.75 4.25a.75.75 0 0 1 0 1.04l-3.75 4.25a.75.75 0 0 1-1.1.02Z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                          <span>See reasoning</span>
+                          {isReasoningActive && (
+                            <span className="flex items-center gap-1 text-amber-500">
+                              <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-amber-400" />
+                              <span className="italic">thinking…</span>
+                            </span>
+                          )}
+                        </button>
+                        {isExpanded && hasReasoning && (
+                          <div className="mt-1 whitespace-pre-wrap rounded-lg bg-amber-50/40 px-3 py-2.5 text-[13px] leading-relaxed text-amber-900/80 md:text-xs">
+                            {m.reasoning}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              }
+
               return (
                 <div
                   key={i}
                   className={
                     m.role === "user"
                       ? "ml-auto flex max-w-[85%] flex-col items-end"
-                      : "mr-auto flex max-w-[85%] flex-col items-start"
+                      : "mr-auto flex w-full flex-col items-start"
                   }
                 >
                   <div
                     className={
                       m.role === "user"
                         ? "rounded-2xl rounded-br-sm bg-zinc-900 px-4 py-2.5 text-[15px] leading-snug text-white md:text-sm"
-                        : "rounded-2xl rounded-bl-sm bg-zinc-100 px-4 py-2.5 text-[15px] leading-snug md:text-sm"
+                        : "max-w-[85%] rounded-2xl rounded-bl-sm bg-zinc-100 px-4 py-2.5 text-[15px] leading-snug md:text-sm"
                     }
                   >
                     {m.content ||
@@ -623,6 +1006,11 @@ function ChatExperience() {
                       )}
                     </div>
                   )}
+                  {m.role === "assistant" && m.labAnalysis && (
+                    <div className="mt-3 w-full">
+                      <LabTable analysis={m.labAnalysis} />
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -634,13 +1022,13 @@ function ChatExperience() {
           </div>
 
           {/* Mobile-only pills row (above composer) */}
-          <div className="flex gap-2 border-t border-zinc-200 px-3 py-2 md:hidden">
+          <div className="flex gap-2 overflow-x-auto border-t border-zinc-200 px-3 py-2 md:hidden">
             <button
               type="button"
               onClick={() => setSheet("profile")}
-              className="flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-full border border-zinc-200 bg-zinc-50 px-3 text-sm font-medium text-zinc-700 active:bg-zinc-100"
+              className="flex min-h-[44px] shrink-0 items-center justify-center gap-2 rounded-full border border-zinc-200 bg-zinc-50 px-3 text-sm font-medium text-zinc-700 active:bg-zinc-100"
             >
-              <span>Your profile</span>
+              <span>Profile</span>
               <span className="rounded-full bg-zinc-200 px-2 py-0.5 text-[11px] font-semibold text-zinc-700">
                 {profileCount}
               </span>
@@ -648,14 +1036,53 @@ function ChatExperience() {
             <button
               type="button"
               onClick={() => setSheet("screenings")}
-              className="flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-full border border-zinc-200 bg-zinc-50 px-3 text-sm font-medium text-zinc-700 active:bg-zinc-100"
+              className="flex min-h-[44px] shrink-0 items-center justify-center gap-2 rounded-full border border-zinc-200 bg-zinc-50 px-3 text-sm font-medium text-zinc-700 active:bg-zinc-100"
             >
               <span>Screenings</span>
               <span className="rounded-full bg-zinc-200 px-2 py-0.5 text-[11px] font-semibold text-zinc-700">
                 {screeningCount}
               </span>
             </button>
+            <button
+              type="button"
+              onClick={() => setSheet("timeline")}
+              className="flex min-h-[44px] shrink-0 items-center justify-center gap-2 rounded-full border border-zinc-200 bg-zinc-50 px-3 text-sm font-medium text-zinc-700 active:bg-zinc-100"
+            >
+              <span>Timeline</span>
+              <span className="rounded-full bg-zinc-200 px-2 py-0.5 text-[11px] font-semibold text-zinc-700">
+                {timelineCount}
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setSheet((s) => (s === "upload" ? null : "upload"))}
+              className="flex min-h-[44px] shrink-0 items-center justify-center gap-2 rounded-full border border-zinc-300 bg-white px-3 text-sm font-medium text-zinc-700 active:bg-zinc-100"
+              aria-label="Upload labs"
+            >
+              <svg viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5" aria-hidden>
+                <path
+                  fillRule="evenodd"
+                  d="M10 3a.75.75 0 0 1 .75.75v7.69l2.22-2.22a.75.75 0 1 1 1.06 1.06l-3.5 3.5a.75.75 0 0 1-1.06 0l-3.5-3.5a.75.75 0 1 1 1.06-1.06l2.22 2.22V3.75A.75.75 0 0 1 10 3Zm-6 12a.75.75 0 0 1 .75-.75h10.5a.75.75 0 0 1 0 1.5H4.75A.75.75 0 0 1 4 15Z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              <span>Upload labs</span>
+            </button>
           </div>
+
+          {/* Mobile-only collapsible drop zone (above composer) */}
+          {sheet === "upload" && (
+            <div className="border-t border-zinc-200 px-3 py-3 md:hidden">
+              <LabDropZone
+                compact
+                note={input}
+                onStart={onLabStart}
+                onStreamEvent={onLabEvent}
+                onError={onLabError}
+                onDone={onLabDone}
+              />
+            </div>
+          )}
 
           <form
             onSubmit={(e) => {
@@ -683,7 +1110,7 @@ function ChatExperience() {
           </form>
         </section>
 
-        {/* Desktop right column: profile (sticky-ish) + screenings below */}
+        {/* Desktop right column: profile (sticky-ish) + screenings + drop + timeline */}
         <aside className="hidden md:flex md:h-[calc(100vh-160px)] md:flex-col md:gap-4 md:overflow-y-auto">
           <div className="flex flex-col rounded-xl border border-zinc-200 bg-white shadow-sm">
             <div className="border-b border-zinc-200 px-5 py-4">
@@ -697,6 +1124,19 @@ function ChatExperience() {
           <ScreeningCalendar
             screenings={screenings}
             recentlyAdded={recentlyAddedScreenings}
+          />
+          <div className="flex flex-col rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
+            <LabDropZone
+              note={input}
+              onStart={onLabStart}
+              onStreamEvent={onLabEvent}
+              onError={onLabError}
+              onDone={onLabDone}
+            />
+          </div>
+          <HealthTimeline
+            events={timeline}
+            recentlyAdded={recentlyAddedTimeline}
           />
         </aside>
       </main>
@@ -760,6 +1200,26 @@ function ChatExperience() {
           )}
         </div>
       </BottomSheet>
+      <BottomSheet
+        open={sheet === "timeline"}
+        onClose={() => setSheet(null)}
+        title="Timeline"
+        subtitle="Everything your companion remembers."
+      >
+        <HealthTimeline
+          events={timeline}
+          recentlyAdded={recentlyAddedTimeline}
+          embedded
+        />
+      </BottomSheet>
+
+      {/* Months-later overlay */}
+      <MonthsLaterFade
+        active={fadeActive}
+        label={fadeLabel}
+        onMidpoint={onFadeMidpoint}
+        onComplete={onFadeComplete}
+      />
     </div>
   );
 }
