@@ -218,3 +218,37 @@ The old all-in-one `ROADMAP.md` was too narrow for what the judges should see. S
 - Juan Manuel to review the orchestrator system prompt at `apps/api/src/api/agents/runner.py`, especially: USPSTF 2024 breast-screening cadence, cervical cadence wording, urgent-value thresholds, §9 failure-mode recovery scripts.
 - Night 3 work (Act 2: multimodal PDF ingest + lab table) begins when a real anonymized lab PDF lands.
 - Night 4 work (fade transition + proactive message card + timeline) begins after Act 2 plumbing is green.
+
+---
+
+### Late-night design decision — Haiku for budget, Opus for thought (April 21, before bed)
+
+Juan Manuel's last reflection of the day, before leaving for dinner:
+
+> *"Maybe the conversation can be Haiku, and behind it classification, reflection and so on with Opus 4.7 — what do you think?"*
+
+The answer we agreed on:
+
+**For the MVP demo (3 minutes):** keep Opus 4.7 as the single visible orchestrator. If Haiku held the mic, there would be no live extended-thinking tokens to surface in the "See reasoning" disclosure, and that disclosure is the entire Layer-1 wow. The judging rubric rewards creative **use of Opus 4.7**, not cost-optimization around Opus. Cost in a 3-minute demo is not the bottleneck; visibility is.
+
+**For production (Phase 1):** Juan Manuel's instinct is exactly right. At 10K active users, running Opus on "good morning" is burning money. The shape we'll ship is:
+
+> **Haiku classifies → Opus thinks.** A fast Haiku 4.5 classifier runs on every user turn and picks Opus's `output_config.effort` — `low` for greetings and trivial profile updates, `high` / `max` for clinically loaded turns (labs, symptoms, family-history discussion, risk assessments). Target: roughly 10× cost reduction per active user per month, with zero quality regression on the clinical moments.
+
+**Pitch line the routing enables (even if we don't ship it before Sunday):**
+
+- ⭐ *"We use Haiku to budget Opus's thinking. At scale that turns a $0.25-per-turn product into $0.03-per-turn without giving up a single clinical moment."*
+
+**Where this lives in the repo going forward:**
+
+- `ROADMAP.md` Phase 1 — "Smart model routing" bullet added tonight.
+- `docs/hackathon-plan.md` Night 4 — Friday stretch goal: if the Act 2 UI is done and time remains, implement the classifier. If it ships, it earns points under Opus 4.7 Use + Depth & Execution. If it doesn't, the demo is unchanged.
+
+**Why the "effort classifier" framing (and not "two-model conversation"):**
+
+Splitting the conversation between two models introduces:
+1. A second model's quality floor on turns that matter.
+2. UX latency if Opus post-hoc "corrects" Haiku (the user already saw Haiku's reply).
+3. A second prompt to audit clinically.
+
+The effort-classifier keeps Opus as the single voice; Haiku only decides whether Opus should think hard. One model speaks, one model budgets. Safer, cheaper, and still Opus-forward.

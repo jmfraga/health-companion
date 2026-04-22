@@ -97,13 +97,16 @@ Target: PDF drop produces multimodal extraction + color-coded lab table.
 3. `hc-backend` adds `log_biomarker` tool (completes the 5).
 4. `hc-frontend` builds `LabDropZone` + `LabTable` + `ConfidenceBadge`.
 
-### Night 4 — Friday Apr 24 · Close Act 2 (proactivity + memory)
+### Night 4 — Friday Apr 24 · Close Act 2 (proactivity + memory) + stretch goal
+
 Target: "3 months later" fade triggers the proactive message; timeline shows the arc.
 
-1. `hc-backend` adds `POST /api/simulate-months-later` + 3-months-later fixture state (timeline entries, proactive payload).
-2. `hc-frontend` builds `MonthsLaterFade` + `ProactiveMessageCard` + `HealthTimeline`.
-3. `hc-clinical` drafts the proactive message wording; JM pulls for voice.
-4. JM records a scratch 5-minute warm-up walkthrough for feel.
+1. `hc-frontend` builds `MonthsLaterFade` + `ProactiveMessageCard` + `HealthTimeline` on top of the Act 2 backend shipped Wednesday.
+2. `hc-clinical` refines the proactive message wording; JM pulls for voice.
+3. JM records a scratch 5-minute warm-up walkthrough for feel.
+
+**Stretch goal — Haiku classifies Opus's effort** (if P0 is green and there is time left):
+A fast Haiku 4.5 classifier runs before the Opus call and decides the `output_config.effort` level for that turn — `low` for greetings and simple profile updates, `high` or `max` for clinically loaded turns (labs, symptoms, risk discussion). The economic story becomes defensible at pitch time: *"We use Haiku to budget Opus's thinking. At scale this turns a $0.25-per-turn product into roughly $0.03 per turn without giving up a single clinical moment."* If the stretch lands, it earns points under "Opus 4.7 Use" and "Depth & Execution". If it doesn't, the demo is unchanged.
 
 ### Saturday morning Apr 25 · Polish + fixtures + record demo
 Target: MVP demoable end-to-end, demo video grabado, fiesta al atardecer.
