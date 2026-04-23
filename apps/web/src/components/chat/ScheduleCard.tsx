@@ -16,6 +16,10 @@ type Props = {
   rows: ScheduleRow[];
   /** Opens the ReasoningSheet for the current companion turn. */
   onSeeReasoning?: () => void;
+  /** When false, the "See reasoning" footer button is hidden. Opt-in via
+   * the Settings toggle; off by default per the three-layer reasoning
+   * visibility decision in the development journal. */
+  showReasoning?: boolean;
   /** Dismiss the structured card ("Later"). */
   onLater?: () => void;
   /** Confirm — adds the screenings to the plan. */
@@ -33,6 +37,7 @@ type Props = {
 export function ScheduleCard({
   rows,
   onSeeReasoning,
+  showReasoning = false,
   onLater,
   onAddToPlan,
 }: Props) {
@@ -115,15 +120,19 @@ export function ScheduleCard({
         data-slot="card-footer"
         className="flex items-center justify-between border-t border-zinc-200 bg-zinc-50/60 px-4 py-2.5"
       >
-        <button
-          type="button"
-          onClick={onSeeReasoning}
-          className="inline-flex items-center gap-1 bg-transparent p-0 text-[12px] font-medium transition-colors hover:underline"
-          style={{ color: "var(--hc-accent-700)" }}
-        >
-          <Sparkles className="h-[13px] w-[13px]" aria-hidden />
-          See reasoning
-        </button>
+        {showReasoning ? (
+          <button
+            type="button"
+            onClick={onSeeReasoning}
+            className="inline-flex items-center gap-1 bg-transparent p-0 text-[12px] font-medium transition-colors hover:underline"
+            style={{ color: "var(--hc-accent-700)" }}
+          >
+            <Sparkles className="h-[13px] w-[13px]" aria-hidden />
+            See reasoning
+          </button>
+        ) : (
+          <span aria-hidden />
+        )}
         <div className="flex gap-1.5">
           <Button variant="ghost" size="sm" onClick={onLater}>
             Later

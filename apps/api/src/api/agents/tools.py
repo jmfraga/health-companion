@@ -152,7 +152,7 @@ TOOLS: list[dict[str, Any]] = [
                 },
                 "source": {
                     "type": "string",
-                    "enum": ["user_said", "lab_report", "wearable"],
+                    "enum": ["user_said", "lab_report", "wearable", "photo"],
                     "description": "Where the value came from.",
                 },
             },

@@ -1,9 +1,11 @@
-"""Multimodal lab-PDF ingestion endpoint.
+"""Multimodal lab ingestion endpoint.
 
-Streams SSE events while Opus 4.7 reads the uploaded PDF directly (no local
-OCR). The orchestrator may call ``log_biomarker`` and ``save_profile_field``
-as it extracts values, and is forced to commit the final structured
-``LabAnalysis`` via a dedicated ``submit_lab_analysis`` tool.
+Streams SSE events while Opus 4.7 reads an uploaded lab PDF *or* a photo
+directly (no local OCR). The orchestrator may call ``log_biomarker`` and
+``save_profile_field`` as it extracts values, and is forced to commit the
+final structured ``LabAnalysis`` via a dedicated ``submit_lab_analysis``
+tool. Four ``phase`` events fire at real transitions so the frontend's
+reading animation (``screen-lab.jsx``) is truthful instead of timer-faked.
 """
 
 from __future__ import annotations
@@ -39,6 +41,20 @@ router = APIRouter(prefix="/api", tags=["labs"])
 
 MAX_TOKENS = 8192
 THINKING_EFFORT = "max"
+
+# Accepted non-PDF uploads — images the user snaps of a lab printout, a
+# bathroom scale, a BP monitor, a pulse oximeter, a glucometer, a
+# thermometer, or a non-syncing watch face. HEIC lands here because iPhone
+# defaults still produce it. Opus 4.7 reads all of these as ``image`` blocks.
+_IMAGE_MIME_TYPES = frozenset(
+    {
+        "image/jpeg",
+        "image/png",
+        "image/webp",
+        "image/heic",
+    }
+)
+_PDF_MIME_TYPE = "application/pdf"
 
 
 # ---------------------------------------------------------------------------
@@ -114,6 +130,26 @@ prescribe, always refer, escalate red flags with calm directness.
 """
 
 
+# Appended to _TASK_FRAME only when the upload is an image, so the model
+# knows it may be reading a device display instead of a PDF report. Equity
+# thread per `ROADMAP.md` §5 Modalities: the user should not need a
+# $300 connected scale — point the camera at the bathroom scale they
+# already own and the value lands in `log_biomarker` with `source="photo"`.
+_PHOTO_TASK_FRAME_ADDENDUM = """\
+
+You are reading a photograph the user took with their phone. The image may
+show a health device display — a bathroom scale, an upper-arm or wrist
+blood-pressure monitor, a pulse oximeter, a glucometer, a thermometer, the
+face of a non-syncing fitness watch — or a physical lab-report printout.
+Identify the device or the report type. If it is a device, read the value
+exactly as shown and log it via `log_biomarker` with `source="photo"`. If
+it is a paper lab printout, treat it the same way you would a PDF lab
+report. Never guess a value you cannot read clearly in the photo. If the
+image is too blurry or cropped to read with confidence, say so and ask the
+user for a clearer shot — do not fabricate.
+"""
+
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -129,6 +165,7 @@ async def _stream_turn(
     tools: list[dict[str, Any]],
     *,
     tool_choice: dict[str, Any] | None = None,
+    phases_emitted: dict[str, bool] | None = None,
 ) -> AsyncIterator[dict[str, Any]]:
     """Drive one streamed turn, yielding event dicts.
 
@@ -138,10 +175,18 @@ async def _stream_turn(
 
     All other events match the shapes the frontend already consumes from
     ``/api/chat``.
+
+    ``phases_emitted`` is a shared dict whose keys are the four phase names
+    (``opening_pdf``, ``extracting_values``, ``cross_referencing``,
+    ``drafting_response``); each is flipped to ``True`` the first time its
+    event fires. This lets the outer event loop share state across the free
+    turn and the optional forced-submit turn, so phase events never
+    double-fire.
     """
     pending_tool_uses: list[dict[str, Any]] = []
     current_tool_use: dict[str, Any] | None = None
     in_thinking_block = False
+    phases = phases_emitted if phases_emitted is not None else {}
 
     kwargs: dict[str, Any] = dict(
         model=MODEL,
@@ -158,6 +203,16 @@ async def _stream_turn(
     else:
         kwargs["thinking"] = {"type": "adaptive", "display": "summarized"}
         kwargs["output_config"] = {"effort": THINKING_EFFORT}
+
+    # Phase 1/4 — opening_pdf. Fires right before the model is asked to read
+    # the document/image, i.e. before any tokens come back from the API. Kept
+    # at the very top of the first turn and guarded for the forced second
+    # turn. Event name is stable across PDF and image paths so the frontend's
+    # step copy ("Opening the PDF multimodally") keeps working without a
+    # rewrite; see the contract note in the task brief.
+    if not phases.get("opening_pdf"):
+        phases["opening_pdf"] = True
+        yield {"type": "phase", "phase": "opening_pdf"}
 
     async with client.messages.stream(**kwargs) as stream:
         async for event in stream:
@@ -181,6 +236,13 @@ async def _stream_turn(
                 delta = event.delta
                 dtype = getattr(delta, "type", None)
                 if dtype == "text_delta":
+                    # Phase 4/4 — drafting_response. First text token is the
+                    # honest signal that narrative generation has begun. Fires
+                    # BEFORE the message_delta yield so the UI observes the
+                    # phase transition before the first prose character.
+                    if not phases.get("drafting_response"):
+                        phases["drafting_response"] = True
+                        yield {"type": "phase", "phase": "drafting_response"}
                     yield {"type": "message_delta", "text": delta.text}
                 elif dtype == "thinking_delta":
                     yield {"type": "reasoning_delta", "text": delta.thinking}
@@ -203,15 +265,34 @@ async def _stream_turn(
                         inputs = {}
                     current_tool_use["input"] = inputs
                     pending_tool_uses.append(current_tool_use)
+                    tool_name = current_tool_use["name"]
+
+                    # Phase 2/4 — extracting_values fires the first time the
+                    # model closes a log_biomarker tool_use block. Phase 3/4 —
+                    # cross_referencing fires the first time save_profile_field
+                    # closes (source="lab" / "inferred" is the model
+                    # acknowledging profile context while reading the labs;
+                    # that IS the cross-reference moment). Both are emitted
+                    # BEFORE the per-block `tool_use` UI event so the phase
+                    # banner updates a tick before the pill flashes.
+                    if tool_name == "log_biomarker" and not phases.get("extracting_values"):
+                        phases["extracting_values"] = True
+                        yield {"type": "phase", "phase": "extracting_values"}
+                    elif tool_name == "save_profile_field" and not phases.get(
+                        "cross_referencing"
+                    ):
+                        phases["cross_referencing"] = True
+                        yield {"type": "phase", "phase": "cross_referencing"}
+
                     # Only surface log_biomarker / save_profile_field as tool_use
                     # events to the UI mid-stream. submit_lab_analysis is the
                     # terminal structured payload and is emitted as a dedicated
                     # `lab_analysis` event by the caller.
-                    if current_tool_use["name"] in _LAB_TOOL_NAMES:
+                    if tool_name in _LAB_TOOL_NAMES:
                         yield {
                             "type": "tool_use",
                             "id": current_tool_use["id"],
-                            "name": current_tool_use["name"],
+                            "name": tool_name,
                             "input": inputs,
                         }
                     current_tool_use = None
@@ -253,8 +334,30 @@ async def ingest_pdf(
     file: UploadFile = File(...),  # noqa: B008 — FastAPI marker
     note: str | None = Form(default=None),
 ) -> StreamingResponse:
-    pdf_bytes = await file.read()
-    pdf_b64 = base64.standard_b64encode(pdf_bytes).decode("ascii")
+    raw_bytes = await file.read()
+    content_type = (file.content_type or "").lower()
+
+    is_pdf = content_type == _PDF_MIME_TYPE
+    is_image = content_type in _IMAGE_MIME_TYPES
+
+    # Unsupported MIME: surface the error through the SSE stream — the
+    # endpoint's contract is event-stream-only and the frontend already
+    # renders a soft `error` strip. Raising HTTP 400 here would break that.
+    if not is_pdf and not is_image:
+        async def unsupported_stream() -> AsyncIterator[str]:
+            yield _format_sse({"type": "error", "message": "unsupported_file_type"})
+            yield _format_sse({"type": "done"})
+
+        return StreamingResponse(
+            unsupported_stream(),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "X-Accel-Buffering": "no",
+            },
+        )
+
+    encoded = base64.standard_b64encode(raw_bytes).decode("ascii")
 
     profile_snapshot = get_profile()
     profile_blurb = (
@@ -266,17 +369,37 @@ async def ingest_pdf(
         f"\n\nThe user attached this note with the upload:\n\"{note.strip()}\"" if note else ""
     )
 
-    instruction = f"{_TASK_FRAME}\n\n{profile_blurb}{user_note}"
+    # Task frame grows a photo-specific addendum on the image path so the
+    # model understands it may be reading a bathroom scale, a BP cuff, an
+    # oximeter, a glucometer, a thermometer, a watch face, or a paper lab
+    # printout — and logs device readings via log_biomarker source="photo".
+    task_frame = _TASK_FRAME
+    if is_image:
+        task_frame = f"{_TASK_FRAME}{_PHOTO_TASK_FRAME_ADDENDUM}"
 
-    content_blocks: list[dict[str, Any]] = [
-        {
+    instruction = f"{task_frame}\n\n{profile_blurb}{user_note}"
+
+    if is_pdf:
+        media_block: dict[str, Any] = {
             "type": "document",
             "source": {
                 "type": "base64",
-                "media_type": "application/pdf",
-                "data": pdf_b64,
+                "media_type": _PDF_MIME_TYPE,
+                "data": encoded,
             },
-        },
+        }
+    else:
+        media_block = {
+            "type": "image",
+            "source": {
+                "type": "base64",
+                "media_type": content_type,
+                "data": encoded,
+            },
+        }
+
+    content_blocks: list[dict[str, Any]] = [
+        media_block,
         {"type": "text", "text": instruction},
     ]
 
@@ -293,6 +416,9 @@ async def ingest_pdf(
         try:
             submitted_analysis: dict[str, Any] | None = None
             forced_follow_up = False
+            # Shared phase state across the free turn and the optional
+            # forced-submit turn. Each phase fires at most once per request.
+            phases_emitted: dict[str, bool] = {}
 
             # Loop: let the model stream text + call log_biomarker /
             # save_profile_field / submit_lab_analysis freely. If it finishes
@@ -300,6 +426,15 @@ async def ingest_pdf(
             # with tool_choice pinned to submit_lab_analysis.
             while True:
                 tool_uses: list[dict[str, Any]] = []
+
+                # Fallback for phase 3/4 (cross_referencing): if the model
+                # never called save_profile_field during the free turn, fire
+                # the phase event right before the forced-submit turn begins
+                # so the UI still completes the reading animation. Guarded
+                # via the shared dict so we never double-fire.
+                if forced_follow_up and not phases_emitted.get("cross_referencing"):
+                    phases_emitted["cross_referencing"] = True
+                    yield _format_sse({"type": "phase", "phase": "cross_referencing"})
 
                 async for event in _stream_turn(
                     client,
@@ -310,6 +445,7 @@ async def ingest_pdf(
                         if forced_follow_up
                         else None
                     ),
+                    phases_emitted=phases_emitted,
                 ):
                     if event["type"] == "_turn_complete":
                         tool_uses = event["tool_uses"]

@@ -57,26 +57,48 @@ const READING_STEPS: ReadonlyArray<{ label: string; sub: string }> = [
   },
 ];
 
-// When busy: stepIndex is the index of the currently-active step (the
-// one pulsing). Everything before it is "done". Step 3 (index 3) stays
-// active indefinitely until the SSE stream resolves.
-function useReadingPhase(busy: boolean) {
+// stepIndex is the index of the currently-active (pulsing) step; anything
+// before it is "done". Advances on real `phase` SSE events emitted by the
+// backend (`opening_pdf` → `extracting_values` → `cross_referencing` →
+// `drafting_response`). We never regress — if a phase arrives out of order
+// (e.g., `cross_referencing` before `extracting_values` because the model
+// chose save_profile_field first), we take the max observed index. A gentle
+// fallback timer advances 0 → 1 after 1.2 s if the backend has not emitted
+// anything yet, so the UI never feels frozen on a slow cold start.
+const PHASE_TO_INDEX: Record<string, number> = {
+  opening_pdf: 0,
+  extracting_values: 1,
+  cross_referencing: 2,
+  drafting_response: 3,
+};
+
+function useReadingPhase(busy: boolean, phase: string | null) {
   const [stepIndex, setStepIndex] = useState(0);
 
+  // Reset on upload start.
   useEffect(() => {
     if (!busy) {
       setStepIndex(0);
-      return;
     }
-    setStepIndex(0);
-    const t1 = window.setTimeout(() => setStepIndex(1), 1200);
-    const t2 = window.setTimeout(() => setStepIndex(2), 2400);
-    const t3 = window.setTimeout(() => setStepIndex(3), 3600);
-    return () => {
-      window.clearTimeout(t1);
-      window.clearTimeout(t2);
-      window.clearTimeout(t3);
-    };
+  }, [busy]);
+
+  // Advance monotonically as real phase events arrive.
+  useEffect(() => {
+    if (!busy || !phase) return;
+    const idx = PHASE_TO_INDEX[phase];
+    if (typeof idx === "number") {
+      setStepIndex((prev) => (idx > prev ? idx : prev));
+    }
+  }, [busy, phase]);
+
+  // Gentle fallback: if the first phase never fires within 1.2 s of an
+  // upload, drift to step 1 so the UI isn't stuck on "Opening the PDF".
+  useEffect(() => {
+    if (!busy) return;
+    const t = window.setTimeout(() => {
+      setStepIndex((prev) => (prev === 0 ? 1 : prev));
+    }, 1200);
+    return () => window.clearTimeout(t);
   }, [busy]);
 
   return stepIndex;
@@ -258,14 +280,17 @@ export function LabDropZone({
   const [file, setFile] = useState<File | null>(null);
   const [localError, setLocalError] = useState<string | null>(null);
   const [finding, setFinding] = useState<WorthFinding | null>(null);
+  const [phase, setPhase] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
-  const stepIndex = useReadingPhase(busy);
+  const stepIndex = useReadingPhase(busy, phase);
 
   const handleStreamEvent = useCallback(
     (event: Record<string, unknown>) => {
       onStreamEvent(event);
-      if (event.type === "lab_analysis" && event.analysis) {
+      if (event.type === "phase" && typeof event.phase === "string") {
+        setPhase(event.phase);
+      } else if (event.type === "lab_analysis" && event.analysis) {
         const analysis = event.analysis as LabAnalysis;
         if (analysis && Array.isArray(analysis.values)) {
           const f = pickConversationFinding(analysis);
@@ -279,14 +304,27 @@ export function LabDropZone({
   const upload = useCallback(
     async (picked: File) => {
       if (busy) return;
-      if (picked.type !== "application/pdf") {
-        const msg = "Please drop a PDF file.";
+      // Accept PDFs and photos. The photo path enables the equity feature:
+      // a user snaps a picture of their bathroom scale, their aunt's BP
+      // monitor, a glucometer display — the backend's image task-frame
+      // addendum tells Opus 4.7 to read the device and log the value.
+      const accepted = new Set([
+        "application/pdf",
+        "image/jpeg",
+        "image/png",
+        "image/webp",
+        "image/heic",
+      ]);
+      if (!accepted.has(picked.type)) {
+        const msg =
+          "We accept PDFs or photos (JPEG, PNG, WebP, HEIC). Other file types won't work.";
         setLocalError(msg);
         onError?.(msg);
         return;
       }
       if (picked.size > MAX_BYTES) {
-        const msg = `That PDF is too large (limit ${prettyBytes(MAX_BYTES)}).`;
+        const kind = picked.type.startsWith("image/") ? "photo" : "PDF";
+        const msg = `That ${kind} is too large (limit ${prettyBytes(MAX_BYTES)}).`;
         setLocalError(msg);
         onError?.(msg);
         return;
@@ -295,6 +333,7 @@ export function LabDropZone({
       setFile(picked);
       setLocalError(null);
       setFinding(null);
+      setPhase(null);
       setBusy(true);
       onStart?.(picked);
 
@@ -475,7 +514,7 @@ export function LabDropZone({
           <input
             ref={inputRef}
             type="file"
-            accept="application/pdf"
+            accept="application/pdf,image/jpeg,image/png,image/webp,image/heic"
             className="hidden"
             onChange={(e) => handleFiles(e.target.files)}
             disabled={busy}
@@ -524,7 +563,7 @@ export function LabDropZone({
         <input
           ref={inputRef}
           type="file"
-          accept="application/pdf"
+          accept="application/pdf,image/jpeg,image/png,image/webp,image/heic"
           className="hidden"
           onChange={(e) => handleFiles(e.target.files)}
           disabled={busy}

@@ -387,6 +387,26 @@ function ChatExperience() {
   const [reasoningActiveIndex, setReasoningActiveIndex] = useState<number | null>(null);
   const [reasoningSheetMsg, setReasoningSheetMsg] =
     useState<ChatMessage | null>(null);
+  // Opt-in: off by default, enabled from /settings. When off the "See
+  // reasoning" buttons hide. The reasoning itself still streams into
+  // ReasoningSheet state and stays in the per-message audit record.
+  const [showReasoning, setShowReasoning] = useState<boolean>(false);
+  useEffect(() => {
+    const read = () => {
+      try {
+        const raw = window.localStorage.getItem("hc:showReasoning");
+        setShowReasoning(raw === "true");
+      } catch {
+        setShowReasoning(false);
+      }
+    };
+    read();
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === "hc:showReasoning") read();
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
   const [sheet, setSheet] = useState<
     null | "profile" | "screenings" | "timeline" | "upload"
   >(null);
@@ -984,6 +1004,12 @@ function ChatExperience() {
             >
               Your privacy
             </Link>
+            <Link
+              href="/settings"
+              className="hidden text-xs text-zinc-500 hover:text-zinc-900 md:inline"
+            >
+              Settings
+            </Link>
             {user?.email && (
               <span
                 className="hidden max-w-[180px] truncate text-xs text-zinc-500 md:inline"
@@ -1166,6 +1192,7 @@ function ChatExperience() {
                       <div className="w-full">
                         <ScheduleCard
                           rows={m.scheduledScreenings}
+                          showReasoning={showReasoning}
                           onSeeReasoning={() => openReasoning(m)}
                           onLater={() => {
                             // Non-destructive: ScheduleCard is ephemeral in
@@ -1187,8 +1214,10 @@ function ChatExperience() {
                     </div>
                   )}
 
-                  {/* See reasoning link — opens the full ReasoningSheet. */}
-                  {(hasReasoning || isReasoningActive) &&
+                  {/* See reasoning link — opens the full ReasoningSheet.
+                      Only renders when the Settings toggle is on. */}
+                  {showReasoning &&
+                    (hasReasoning || isReasoningActive) &&
                     !(m.scheduledScreenings && m.scheduledScreenings.length > 0) && (
                       <button
                         type="button"
