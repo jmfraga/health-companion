@@ -581,6 +581,39 @@ This is the strongest shape the business has had so far. Continuing the day's pl
 
 ---
 
+### Longitudinal trend charts for tracked parameters (Apr 23 afternoon)
+
+Juan Manuel, quick addition between meetings:
+
+> *"Los laboratorios y parámetros vitales deberían poder graficarse en el tiempo (aquellos definidos como aspectos en los que trabajar) — por ejemplo glucosa en ayunas, peso, masa muscular, presión arterial."*
+
+This is the natural next step for the biomarker layer and it lands squarely on the product thesis: the companion's memory compounding in value only matters if the user can **see** it compound. A sparkline next to "fasting glucose" that shows 118 → 112 → 108 across three months is the "memory made visible" moment the Hans case study described from his own experience.
+
+**Scope** (Phase 1 thread, under §13 Living state document or as its own §18):
+
+- Each tracked parameter — `fasting_glucose`, `hba1c`, `weight`, `muscle_mass`, `systolic_bp` / `diastolic_bp`, `resting_hr`, `sleep_hours`, etc. — gets a small time-series chart when there are ≥ 2 data points on file.
+- Only parameters flagged as "aspects to work on" (user-chosen or companion-suggested as part of the care plan) render prominently. Everything else is logged but not surfaced unless the user opens the biomarker detail view.
+- X-axis = time, Y-axis = value. Reference range shaded in zinc-100. Color coded per source (objective/blue, chat-reported/amber) — same semantic as the timeline dots, for consistency.
+- Tap/click a data point → opens the timeline entry where that value landed, closing the loop between "I see my trend" and "I remember the day this reading came in."
+- On the patient surface: simple mobile-friendly sparklines (dense, glanceable). On the Bridge clinician surface (Phase 2): the same data in a larger, interactive chart the clinician can zoom/annotate.
+
+**Where this fits**:
+
+- Short-term (Phase 1 day-one): sparkline under each biomarker in the profile panel and on the `/settings` "Data" tab when we add it.
+- Medium-term (Phase 1 late): a dedicated `/trends` view with all tracked parameters, filtering by "aspects to work on" vs. full log.
+- Long-term (Phase 2 Bridge): the same charts mirrored on the clinician dashboard, with annotations the doctor writes that the companion translates for the patient ("your doctor noted that the trend over the last month is promising").
+
+**Why this is load-bearing for the pitch**, even if not shipped Sunday:
+
+The three-minute demo will claim that the product's value is memory that compounds. A judge asking *"what does that look like visually?"* deserves a one-sentence answer with a visual in mind. Even without the chart shipping, a line like *"each biomarker you log earns a place on your trend line — glucose over three months, weight over a year"* in the closing monologue makes the abstract claim concrete.
+
+Captured to ROADMAP as a new capability thread. No code tonight — articulation only.
+
+Quotable ⭐:
+> *"A trend line is memory you can see."*
+
+---
+
 ### OPEN — Claude Design render not visible (Apr 22 night)
 
 Implemented the full Claude Design handoff (commits `1bec7c0` and prior). The new visual (companion prose + heart avatar, Laura emerald bubbles, ToolTraceCard, ScheduleCard, inline LabExpanded, pill composer, reading-state animation, ProactiveLetter, ReasoningSheet) does not appear in Juan Manuel's browser.
