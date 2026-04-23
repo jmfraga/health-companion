@@ -18,6 +18,21 @@ Laura, 44, whose mother died of breast cancer at 52, is meeting Health Companion
 
 The full product vision covers five health pillars (prevention, body, mind, risk-reduction habits, disease management) with a freemium model. The demo is the first beats of a more ambitious project.
 
+## Three users, one product
+
+> *The health system gets paid when you get sick. We get paid to keep you well.*
+
+One surface, two adoption paths for patients, one view for their clinician.
+
+| | 01 · People who want to start caring | 02 · People who already care, and want to keep going | 03 · Doctors whose daily work becomes keeping people well |
+|---|---|---|---|
+| **Who** | Busy 40-somethings who aren't sick, don't have a family doctor, and just had a scare — theirs or someone close. | Hans-path users 45–60 — wearables, HRV, ApoB, longevity. They tolerate depth. They want the edges sharper. | A primary-care physician or internist whose 15 minutes is never enough — and whose patients live 8 weeks between visits. |
+| **Before** | A lab result they don't understand. A specialist appointment they leave half-remembering. A quiet worry after a family diagnosis. | Four apps that don't talk. A coach, a panel subscription, a supplement stack. Signal scattered across dashboards. | Reconstructing two months of context in five minutes. Phone calls after hours for what can't wait. The wrong people walking in unprepared. |
+| **With Health Companion** | The companion greets them: *"Tu mamografía anual viene en 3 semanas — ¿la agendamos?"* They photograph a lab PDF; every jargon term is translated. They walk in prepared, with the right questions written down. Twelve months in, they've quietly become the engaged kind of patient — because the product did the work. | Continuous biometric ingestion — HRV, RHR, sleep, training load — as one stream. Pattern recognition: *"HRV down 3 nights, stress up — is something going on?"* They tap **See reasoning** and read the full chain of thought. A calibrated, cautious voice: *this is a signal, not a verdict.* | A Bridge dashboard: every enrolled patient, current goals, biomarker trends, adherence signals. Soft flags when something trends out of range — surfaced before the next visit, not after. Their clinical note is auto-translated into plain language for the patient. The day shifts from reactive sick-visit management to proactive motivation. They get to be a doctor again. |
+| **Quote** | *"I finally understand what my doctor is telling me."* | *"It connects the dots I was already staring at."* | *"I walk in already knowing who needs me this week."* |
+
+The full infographic (vertical 1080×1920 and horizontal 1200×800 renders) lives at [`docs/assets/three-users.html`](./docs/assets/three-users.html).
+
 ## Design principles
 
 - **Wellness, not diagnosis.** Educates, contextualizes, refers. Never prescribes.

@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Health Companion — three users</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    html, body { margin: 0; padding: 0; background: #f0eee9; font-family: "Geist", system-ui, sans-serif; color: #18181b; }
+    * { box-sizing: border-box; }
+    .stage { display: flex; flex-direction: column; gap: 28px; padding: 28px; align-items: center; }
+    .label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(60,50,40,0.6); margin-bottom: 8px; font-family: "Geist", system-ui; }
+    /* Tokens */
+    :root {
+      --zinc-900: #18181b; --zinc-700: #3f3f46; --zinc-500: #71717a;
+      --zinc-400: #a1a1aa; --zinc-300: #d4d4d8; --zinc-200: #e4e4e7;
+      --zinc-100: #f4f4f5; --zinc-50: #fafafa;
+      --paper: #fdfcf8; --paper-edge: #f4f1e8;
+      --emerald-50: #ecfdf5; --emerald-100: #d1fae5; --emerald-500: #10b981;
+      --emerald-600: #059669; --emerald-700: #047857; --emerald-900: #064e3b;
+      --amber-50: #fffbeb; --amber-100: #fef3c7; --amber-200: #fde68a;
+      --amber-600: #d97706; --amber-800: #92400e;
+      --blue-50: #eff6ff; --blue-200: #bfdbfe; --blue-700: #1d4ed8;
+      --sans: "Geist", -apple-system, system-ui, sans-serif;
+      --mono: "Geist Mono", ui-monospace, Menlo, monospace;
+    }
+
+    /* ───────── Shared primitives ───────── */
+    .thesis { font-family: var(--sans); font-weight: 500; letter-spacing: -0.025em; line-height: 1.18; color: var(--zinc-900); }
+    .thesis em { font-style: normal; color: var(--emerald-700); font-weight: 500; }
+    .chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px;
+      font-size: 10.5px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+      border: 0.5px solid var(--zinc-200); background: #fff; }
+    .chip .dot { width: 6px; height: 6px; border-radius: 999px; background: var(--emerald-600); }
+    .chip.amber { background: var(--amber-50); border-color: var(--amber-200); color: var(--amber-800); }
+    .chip.amber .dot { background: var(--amber-600); }
+    .chip.blue  { background: var(--blue-50); border-color: var(--blue-200); color: var(--blue-700); }
+    .chip.blue .dot { background: var(--blue-700); }
+    .chip.emerald { background: var(--emerald-50); border-color: var(--emerald-100); color: var(--emerald-700); }
+
+    .micro { font-size: 10.5px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--zinc-500); }
+    .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+    /* ───────── Poster surface (shared) ───────── */
+    .poster { background: var(--paper); position: relative; overflow: hidden;
+      box-shadow: 0 40px 80px -30px rgba(0,0,0,0.22), 0 2px 6px rgba(0,0,0,0.04); }
+    .poster::before {
+      content: ''; position: absolute; inset: 0;
+      background-image: radial-gradient(rgba(0,0,0,0.035) 1px, transparent 1px);
+      background-size: 24px 24px; pointer-events: none; opacity: 0.55;
+    }
+    .pstar { position: absolute; top: 22px; right: 24px; display: flex; align-items: center; gap: 8px;
+      font-family: var(--mono); font-size: 10.5px; color: var(--zinc-500); letter-spacing: 0.04em; }
+    .brand { display: flex; align-items: center; gap: 10px; }
+    .brand-mark {
+      width: 22px; height: 22px; border-radius: 6px; background: var(--zinc-900); color: #fff;
+      display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 12px;
+      letter-spacing: -0.02em;
+    }
+    .brand-mark.em { background: var(--emerald-600); }
+    .brand-text { font-size: 13px; font-weight: 600; color: var(--zinc-900); letter-spacing: -0.01em; }
+    .brand-text span { color: var(--zinc-500); font-weight: 400; }
+
+    /* ───────── Persona card ───────── */
+    .col { display: flex; flex-direction: column; background: #fff; border-radius: 20px;
+      border: 1px solid var(--zinc-200); overflow: hidden; position: relative; }
+    .col-head { padding: 22px 22px 18px; border-bottom: 1px solid var(--zinc-200); background: #fff; position: relative; }
+    .col-head .idx { font-family: var(--mono); font-size: 11px; color: var(--zinc-400); letter-spacing: 0.06em; }
+    .col-head h3 { margin: 10px 0 6px; font-size: 20px; font-weight: 600; letter-spacing: -0.018em; line-height: 1.2; color: var(--zinc-900); }
+    .col-head .who { font-size: 13px; color: var(--zinc-500); line-height: 1.5; }
+    .col-motif { position: absolute; top: 18px; right: 20px; width: 44px; height: 44px;
+      border-radius: 12px; display: flex; align-items: center; justify-content: center;
+      background: var(--zinc-50); border: 1px solid var(--zinc-200); color: var(--zinc-700); }
+    .col-body { padding: 18px 22px 20px; flex: 1; display: flex; flex-direction: column; gap: 14px; }
+
+    .state-label { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+    .state-label .bar { width: 16px; height: 1.5px; background: var(--zinc-300); }
+
+    .before { font-size: 13.5px; line-height: 1.55; color: var(--zinc-500); font-style: italic;
+      padding-left: 12px; border-left: 2px solid var(--zinc-200); }
+
+    .beats { display: flex; flex-direction: column; gap: 8px; }
+    .beat { display: flex; gap: 10px; align-items: flex-start; }
+    .beat .num { width: 20px; height: 20px; flex-shrink: 0; border-radius: 999px;
+      background: var(--emerald-50); color: var(--emerald-700); display: flex; align-items: center; justify-content: center;
+      font-family: var(--mono); font-size: 10.5px; font-weight: 600; margin-top: 1px; border: 1px solid var(--emerald-100); }
+    .beat.amber .num { background: var(--amber-50); color: var(--amber-800); border-color: var(--amber-200); }
+    .beat.blue  .num { background: var(--blue-50); color: var(--blue-700); border-color: var(--blue-200); }
+    .beat p { margin: 0; font-size: 13.5px; line-height: 1.5; color: var(--zinc-900); flex: 1; min-width: 0; }
+    .beat p .mono { font-size: 12.5px; color: var(--zinc-700); }
+
+    .quote { margin-top: 2px; padding: 14px 16px; border-radius: 12px;
+      background: var(--zinc-50); border-left: 3px solid var(--emerald-600);
+      font-size: 14.5px; line-height: 1.45; color: var(--zinc-900); letter-spacing: -0.005em; }
+    .quote::before { content: '\201C'; color: var(--emerald-600); font-size: 24px; line-height: 0.8; margin-right: 2px; }
+    .quote::after  { content: '\201D'; color: var(--emerald-600); }
+
+    .ribbon { display: flex; align-items: center; gap: 18px; padding: 20px 24px;
+      background: var(--zinc-900); color: var(--zinc-50); border-radius: 16px; letter-spacing: -0.005em; }
+    .ribbon .r-text { flex: 1; font-size: 16px; font-weight: 400; line-height: 1.45; }
+    .ribbon .r-text em { font-style: normal; color: var(--emerald-100); font-weight: 500; }
+    .ribbon .r-nodes { display: flex; align-items: center; gap: 10px; }
+    .ribbon .r-node { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center;
+      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); color: var(--emerald-100); }
+    .ribbon .r-line { width: 14px; height: 1.5px; background: var(--emerald-500); opacity: 0.6; }
+
+    .foot { display: flex; justify-content: space-between; align-items: center; font-family: var(--mono);
+      font-size: 10.5px; color: var(--zinc-500); letter-spacing: 0.04em; padding: 14px 4px 0; }
+    .foot .dot { width: 4px; height: 4px; border-radius: 999px; background: var(--zinc-400); }
+    .foot .grp { display: flex; align-items: center; gap: 10px; }
+
+    /* ───────── Vertical (1080×1920) ───────── */
+    .v { width: 1080px; height: 1920px; padding: 56px 56px 46px; display: flex; flex-direction: column; gap: 28px; }
+    .v .v-head { display: flex; justify-content: space-between; align-items: flex-start; }
+    .v .v-head .chips { display: flex; gap: 6px; margin-top: 10px; }
+    .v .thesis { font-size: 66px; max-width: 900px; }
+    .v .v-sub { font-size: 17px; color: var(--zinc-500); line-height: 1.5; max-width: 820px; margin-top: 6px; }
+    .v .cols { display: grid; grid-template-columns: 1fr; gap: 22px; flex: 1; }
+    .v .col { min-height: 0; }
+    .v .col-head h3 { font-size: 24px; }
+    .v .col-head .who { font-size: 14.5px; }
+    .v .beat p { font-size: 14.5px; }
+    .v .quote { font-size: 16px; }
+    .v .ribbon .r-text { font-size: 17px; }
+
+    /* ───────── Horizontal (1200×800) ───────── */
+    .h { width: 1200px; height: 800px; padding: 36px 40px 28px; display: flex; flex-direction: column; gap: 18px; }
+    .h .h-head { display: flex; justify-content: space-between; align-items: center; }
+    .h .thesis { font-size: 32px; max-width: 780px; line-height: 1.2; }
+    .h .h-sub  { font-size: 12.5px; color: var(--zinc-500); line-height: 1.45; max-width: 760px; margin-top: 4px; }
+    .h .cols { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; flex: 1; min-height: 0; }
+    .h .col-head { padding: 16px 16px 14px; }
+    .h .col-motif { width: 34px; height: 34px; top: 14px; right: 14px; border-radius: 9px; }
+    .h .col-head h3 { font-size: 16px; margin: 8px 0 4px; }
+    .h .col-head .who { font-size: 11.5px; line-height: 1.45; }
+    .h .col-head .idx { font-size: 10px; }
+    .h .col-body { padding: 14px 16px 16px; gap: 10px; }
+    .h .micro { font-size: 9.5px; }
+    .h .before { font-size: 11.5px; padding-left: 10px; }
+    .h .beat p { font-size: 11.5px; line-height: 1.45; }
+    .h .beat .num { width: 17px; height: 17px; font-size: 9.5px; }
+    .h .quote { font-size: 12px; padding: 10px 12px; line-height: 1.45; }
+    .h .ribbon { padding: 12px 16px; gap: 14px; border-radius: 12px; }
+    .h .ribbon .r-text { font-size: 12.5px; }
+    .h .ribbon .r-node { width: 28px; height: 28px; border-radius: 8px; }
+    .h .foot { font-size: 9.5px; padding-top: 8px; }
+  </style>
+</head>
+<body>
+
+<div class="stage">
+  <div>
+    <div class="label">Vertical · 1080 × 1920 · Instagram / LinkedIn / pitch slide</div>
+    <div class="poster v" id="poster-v"></div>
+  </div>
+  <div>
+    <div class="label">Horizontal · 1200 × 800 · landing hero / presentation</div>
+    <div class="poster h" id="poster-h"></div>
+  </div>
+</div>
+
+<!-- ───────── Icon SVGs (reused inline) ───────── -->
+<template id="tpl-phone">
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="6" y="2.5" width="12" height="19" rx="3"/><line x1="11" y1="18.2" x2="13" y2="18.2"/></svg>
+</template>
+<template id="tpl-watch">
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="6" y="6" width="12" height="12" rx="3"/><path d="M9 6V3h6v3M9 18v3h6v-3"/><path d="M12 10v3l2 1.2"/></svg>
+</template>
+<template id="tpl-steth">
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M5 3v6a4 4 0 0 0 8 0V3"/><path d="M5 3h2M11 3h2"/><path d="M9 13v3a5 5 0 0 0 10 0v-1"/><circle cx="19" cy="13" r="2"/></svg>
+</template>
+<template id="tpl-heart">
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.7a5.5 5.5 0 0 0 0-7.7z"/></svg>
+</template>
+
+<script>
+  // ─────────────────────────────────────────────────────────────
+  // Shared content
+  // ─────────────────────────────────────────────────────────────
+  const personas = [
+    {
+      idx: '01',
+      name: 'People who want to start caring',
+      who: 'Busy 40-somethings who aren\u2019t sick, don\u2019t have a family doctor, and just had a scare \u2014 theirs or someone close.',
+      motif: 'tpl-phone',
+      before: 'A lab result they don\u2019t understand. A specialist appointment they leave half-remembering. A quiet worry after a family diagnosis.',
+      beats: [
+        { tone: 'amber', text: 'The companion greets them. <span class="mono">"Tu mamograf\u00EDa anual viene en 3 semanas \u2014 \u00BFla agendamos?"</span>' },
+        { tone: 'blue',  text: 'They photograph a lab PDF. Every jargon term is translated. What matters is named.' },
+        { tone: 'plain', text: 'They walk into the doctor\u2019s office prepared, with the right questions written down.' },
+        { tone: 'plain', text: 'Twelve months in, they\u2019ve quietly become the engaged kind of patient \u2014 because the product did the work.' },
+      ],
+      quote: 'I finally understand what my doctor is telling me.',
+    },
+    {
+      idx: '02',
+      name: 'People who already take care, and want to keep going',
+      who: 'Hans-path users 45\u201360 \u2014 wearables, HRV, ApoB, longevity. They tolerate depth. They want the edges sharper.',
+      motif: 'tpl-watch',
+      before: 'Four apps that don\u2019t talk. A coach, a panel subscription, a supplement stack. Signal scattered across dashboards.',
+      beats: [
+        { tone: 'blue',  text: 'Continuous biometric ingestion \u2014 <span class="mono">HRV</span>, <span class="mono">RHR</span>, sleep, training load \u2014 as one stream.' },
+        { tone: 'amber', text: 'Pattern recognition. <span class="mono">"HRV down 3 nights, stress up \u2014 is something going on?"</span>' },
+        { tone: 'plain', text: 'They tap <em style="font-style:normal;color:var(--emerald-700);font-weight:500">See reasoning</em> and read the companion\u2019s full chain of thought.' },
+        { tone: 'plain', text: 'A calibrated, cautious voice: <em style="font-style:normal;color:var(--zinc-700)">this is a signal, not a verdict.</em>' },
+      ],
+      quote: 'It connects the dots I was already staring at.',
+    },
+    {
+      idx: '03',
+      name: 'Doctors whose daily work becomes keeping people well',
+      who: 'A primary-care physician or internist whose 15 minutes is never enough \u2014 and whose patients live 8 weeks between visits.',
+      motif: 'tpl-steth',
+      before: 'Reconstructing two months of context in five minutes. Phone calls after hours for what can\u2019t wait. The wrong people walking in unprepared.',
+      beats: [
+        { tone: 'plain', text: 'A Bridge dashboard: every enrolled patient, current goals, biomarker trends, adherence signals.' },
+        { tone: 'amber', text: 'Soft flags when something trends out of range \u2014 surfaced before the next visit, not after.' },
+        { tone: 'plain', text: 'Their clinical note is auto-translated into plain language for the patient. The next visit starts prepared.' },
+        { tone: 'plain', text: 'The day shifts from reactive sick-visit management to proactive motivation. They get to be a doctor again.' },
+      ],
+      quote: 'I walk in already knowing who needs me this week.',
+    },
+  ];
+
+  // ─────────────────────────────────────────────────────────────
+  // Renderers
+  // ─────────────────────────────────────────────────────────────
+  function svg(id) {
+    return document.getElementById(id).innerHTML;
+  }
+
+  function renderColumn(p) {
+    const beatsHTML = p.beats.map((b, i) => `
+      <div class="beat ${b.tone}">
+        <div class="num">${String(i+1).padStart(2,'0')}</div>
+        <p>${b.text}</p>
+      </div>`).join('');
+    return `
+      <article class="col">
+        <div class="col-head">
+          <div class="col-motif">${svg(p.motif)}</div>
+          <div class="idx mono">${p.idx}</div>
+          <h3>${p.name}</h3>
+          <div class="who">${p.who}</div>
+        </div>
+        <div class="col-body">
+          <div>
+            <div class="state-label">
+              <span class="bar"></span>
+              <span class="micro">Before</span>
+            </div>
+            <div class="before">${p.before}</div>
+          </div>
+          <div>
+            <div class="state-label">
+              <span class="bar" style="background:var(--emerald-500)"></span>
+              <span class="micro" style="color:var(--emerald-700)">With Health Companion</span>
+            </div>
+            <div class="beats">${beatsHTML}</div>
+          </div>
+          <div class="quote">${p.quote}</div>
+        </div>
+      </article>`;
+  }
+
+  const thesisHTML = `
+    <div class="thesis">
+      The health system gets paid when you get sick.
+      <em>We get paid to keep you well.</em>
+    </div>`;
+
+  const subHTML = `
+    <div class="v-sub">Health Companion is a wellness product powered by Opus 4.7. It remembers what matters, surfaces the conversation at the right moment, and never diagnoses. Authored by a practicing physician. Open-source.</div>`;
+
+  const chipsHTML = `
+    <div class="chips">
+      <span class="chip emerald"><span class="dot"></span>Wellness</span>
+      <span class="chip amber"><span class="dot"></span>Proactive</span>
+      <span class="chip blue"><span class="dot"></span>Evidence</span>
+    </div>`;
+
+  const ribbonHTML = `
+    <div class="ribbon">
+      <div class="r-nodes">
+        <div class="r-node">${svg('tpl-phone')}</div>
+        <div class="r-line"></div>
+        <div class="r-node">${svg('tpl-watch')}</div>
+        <div class="r-line"></div>
+        <div class="r-node">${svg('tpl-steth')}</div>
+      </div>
+      <div class="r-text">
+        One product, <em>two adoption paths for patients</em>, one surface for their clinician.
+        <span style="color:var(--zinc-400)"> · </span>
+        <span>The same Health Companion.</span>
+      </div>
+    </div>`;
+
+  const footHTML = `
+    <div class="foot">
+      <div class="grp">
+        <span>BUILT WITH OPUS 4.7</span>
+        <span class="dot"></span>
+        <span>GITHUB.COM/JMFRAGA/HEALTH-COMPANION</span>
+        <span class="dot"></span>
+        <span>APACHE 2.0</span>
+      </div>
+      <div class="grp"><span>DR. JUAN MANUEL FRAGA SASTR\u00CDAS \u00B7 CLINICAL AUTHOR</span></div>
+    </div>`;
+
+  const brandHTML = `
+    <div class="brand">
+      <div class="brand-mark em">${svg('tpl-heart')}</div>
+      <div class="brand-text">Health Companion <span>\u2014 three users, one product</span></div>
+    </div>`;
+
+  // ─────────────────────────────────────────────────────────────
+  // Assemble
+  // ─────────────────────────────────────────────────────────────
+  document.getElementById('poster-v').innerHTML = `
+    <div class="v-head">
+      ${brandHTML}
+      ${chipsHTML}
+    </div>
+    <div style="margin-top:10px">
+      ${thesisHTML}
+      ${subHTML}
+    </div>
+    <div class="cols">${personas.map(renderColumn).join('')}</div>
+    ${ribbonHTML}
+    ${footHTML}
+  `;
+
+  document.getElementById('poster-h').innerHTML = `
+    <div class="h-head">
+      ${brandHTML}
+      ${chipsHTML.replace('class="chips"', 'class="chips" style="display:flex;gap:6px"')}
+    </div>
+    <div>
+      ${thesisHTML}
+      <div class="h-sub">Wellness powered by Opus 4.7. Remembers what matters. Never diagnoses. Authored by a practicing physician. Open-source.</div>
+    </div>
+    <div class="cols">${personas.map(renderColumn).join('')}</div>
+    ${ribbonHTML}
+    ${footHTML}
+  `;
+</script>
+</body>
+</html>
