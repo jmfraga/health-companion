@@ -24,6 +24,10 @@ import { ProactiveMessageCard } from "@/components/proactive/ProactiveMessageCar
 import { HealthTimeline } from "@/components/timeline/HealthTimeline";
 import { ScheduleCard, type ScheduleRow } from "@/components/chat/ScheduleCard";
 import { ToolTraceCard, type ToolCall } from "@/components/chat/ToolTraceCard";
+import {
+  BiomarkerTrackingList,
+  type TrackingSeries,
+} from "@/components/trends/BiomarkerTrackingList";
 import type {
   Biomarker,
   LabAnalysis,
@@ -376,7 +380,8 @@ function ChatExperience() {
   const [recentlyAddedScreenings, setRecentlyAddedScreenings] = useState<Set<string>>(
     new Set()
   );
-  const [, setBiomarkers] = useState<Biomarker[]>([]);
+  const [biomarkers, setBiomarkers] = useState<Biomarker[]>([]);
+  const [trackingSeries, setTrackingSeries] = useState<Record<string, TrackingSeries>>({});
   const [timeline, setTimeline] = useState<TimelineEvent[]>([]);
   const [recentlyAddedTimeline, setRecentlyAddedTimeline] = useState<Set<string>>(
     new Set()
@@ -438,10 +443,11 @@ function ChatExperience() {
           fetch(`${API_URL}/api/profile`, { headers }).then((r) => r.json()),
           fetch(`${API_URL}/api/screenings`, { headers }).then((r) => r.json()),
           fetch(`${API_URL}/api/biomarkers`, { headers }).then((r) => r.json()),
+          fetch(`${API_URL}/api/trends`, { headers }).then((r) => r.json()),
         ]);
         if (cancelled) return;
 
-        const [tl, pr, sc, bm] = results;
+        const [tl, pr, sc, bm, tr] = results;
         if (tl.status === "fulfilled" && Array.isArray(tl.value?.timeline)) {
           setTimeline(tl.value.timeline as TimelineEvent[]);
         }
@@ -454,6 +460,11 @@ function ChatExperience() {
         if (bm.status === "fulfilled" && Array.isArray(bm.value?.biomarkers)) {
           setBiomarkers(bm.value.biomarkers as Biomarker[]);
         }
+        if (tr.status === "fulfilled" && tr.value?.series) {
+          setTrackingSeries(
+            tr.value.series as Record<string, TrackingSeries>,
+          );
+        }
       } catch {
         // Silent — first chat turn will repopulate via snapshot events.
       }
@@ -462,6 +473,33 @@ function ChatExperience() {
       cancelled = true;
     };
   }, []);
+
+  // Keep the tracking sparklines in sync when biomarkers grow. Refetches
+  // /api/trends (which carries the grouped labels + reference ranges) on
+  // every change to the biomarker count, so a lab upload or chat-logged
+  // value lights up the sidebar without a page reload.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const token = await getAccessToken();
+        const headers: Record<string, string> = {};
+        if (token) headers.Authorization = `Bearer ${token}`;
+        const res = await fetch(`${API_URL}/api/trends`, { headers });
+        if (!res.ok) return;
+        const json = await res.json();
+        if (cancelled) return;
+        if (json?.series) {
+          setTrackingSeries(json.series as Record<string, TrackingSeries>);
+        }
+      } catch {
+        // noop — next snapshot will repaint.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [biomarkers.length]);
 
   const flashField = useCallback((field: string) => {
     setRecentlyChanged((prev) => new Set(prev).add(field));
@@ -1382,6 +1420,7 @@ function ChatExperience() {
             </div>
             <ProfileBody profile={profile} recentlyChanged={recentlyChanged} />
           </div>
+          <BiomarkerTrackingList series={trackingSeries} />
           <ScreeningCalendar
             screenings={screenings}
             recentlyAdded={recentlyAddedScreenings}
@@ -1410,6 +1449,9 @@ function ChatExperience() {
         subtitle="Fills in as we talk."
       >
         <ProfileBody profile={profile} recentlyChanged={recentlyChanged} />
+        <div className="px-5 pb-4">
+          <BiomarkerTrackingList series={trackingSeries} />
+        </div>
       </BottomSheet>
       <BottomSheet
         open={sheet === "screenings"}
