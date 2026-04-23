@@ -75,8 +75,11 @@ Surface area with the clinical system:
 
 The photo-of-device path and the wearable-API path coexist on purpose: wearable APIs give us continuity, photos give us coverage. Most of the world will use both — a connected watch for trend, a photo of the abuela's bathroom scale when she visits.
 
-### 6. Clinical transparency
-Every clinical response can be opened to reveal the reasoning behind it. Extended thinking, exposed as a clinical artifact ("See reasoning"). Over time this becomes the trust layer: the user can look over the companion's shoulder any time they want, and doctors can verify the logic that was shown to their patient.
+### 6. Clinical transparency — three layers of reasoning visibility
+Extended thinking is exposed as a clinical artifact, not as a toy. In Phase 1 the visibility settles into three layers, tuned to the adoption path:
+- **Always-on: a one-line "why" tag** above every clinical assistant turn ("Because of your maternal family history of breast cancer, I lean toward earlier screening"). Calibrated, natural-language, one driver at a time. The everyday user gets real explicability without raw-reasoning overload.
+- **Opt-in: the full "See reasoning" disclosure.** Off by default, toggled in Settings / Privacy — "Show reasoning in conversations". Hans-path users flip it on and watch the clinical note stream live; Laura-path users never see it unless they ask. This protects anxious users from fixating on hedge language that looks confident out of context, while keeping the depth available for those who want it.
+- **Always-written: a permanent audit log.** Every turn's full reasoning is persisted. Not shown in the default UI. Available to the user on explicit request (transcript), to their treating physician with consent, and to us for clinical-quality review and outcomes research. This is how "See reasoning" becomes the trust layer at scale without becoming the default attention sink.
 
 ### 7. Privacy as a visible feature
 The user should never have to dig through the Terms of Service to understand what happens to their health data. An "About your privacy" surface is a first-class section of the app from early in Phase 1, explaining in plain language: what is stored, what is encrypted, who can access it (only the user), how export and delete work, whether the conversation is ever used for model training (it is not), and how the clinician-audit process works. Privacy is worth the square pixels.
@@ -106,8 +109,26 @@ The product works in both high- and low-resource contexts. In low-resource conte
 ### 12. Regulatory posture
 Wellness + education + referral. Never a medical device. Documented compliance with FDA General Wellness, COFEPRIS wellness classification, MDR wellness exemption. Clinician-led content review is part of every release.
 
-### 13. Living state document
+### 13. Living state document — four complementary timelines
 The profile, the screenings, the biomarkers, the timeline — together they are not a chat log, they are a **structured, consultable health record** the user and their treating physician can read at any moment. Every new capability thread feeds into this document. The document is the product. Chat is the input method, "See reasoning" is the audit layer, but the artifact that compounds value year over year is the state document itself.
+
+The document is organized as **four complementary timelines**, not one:
+
+| Layer | Time direction | What it holds |
+|---|---|---|
+| **Timeline** | Past | Consultations, lab uploads, proactive messages received, screenings scheduled, conversations worth keeping. Expand-on-click per entry with type-specific detail rendering (Phase 0). |
+| **Next Steps / Commitments** | Future | Appointments, pending studies, medication refills, follow-up calls, clarifying questions to bring to the next visit. With reminders and active verification that commitments were kept. Phase 1. |
+| **Screenings** | Future (preventive) | A specialized subset of Next Steps — preventive checkups driven by age, sex, family history, local-guideline cadence. Carries guideline source and rationale per card (Phase 0 for the list; rationale tag Phase 1). |
+| **Habits** | Recurring | Behavioral commitments with daily or weekly tracking — hydration, sleep, walking, days without tobacco, medication adherence, mood check-in. Includes proxy indicators per condition (the "handshake 0–10" pattern scaled). Phase 1+. |
+
+Each layer has its own rhythm and UX, but they share the same underlying store — one state, four ways in. The `/api/chat` orchestrator reads from all four via the live-state-snapshot layer (see §17 below) so the companion's memory is genuinely cross-cutting, not per-endpoint.
+
+### 17. Cross-endpoint memory (architecture, not a feature)
+The companion's claim — *"I remember what you told me, I remember what we did together"* — has to hold even when *we* spans multiple backend endpoints. Labs ingested in `/api/ingest-pdf`, screenings scheduled in `/api/chat`, proactive messages composed in `/api/simulate-months-later`: the state produced by any of these must be immediately visible to the others on the next turn.
+
+The architecture: a **live state snapshot** composed from the shared store (profile, biomarkers, screenings, timeline, memory) and injected as the second block of the `system=` array on every orchestrator call, with prompt caching so cost stays flat. The static clinical system prompt caches; only the live snapshot is fresh per turn.
+
+This is an architectural commitment the moral contract of the product rests on: we do not build features that are legible to one endpoint and invisible to another. Memory is not one endpoint's problem — it is the product.
 
 ### 14. Behavioral follow-through (gap-of-action)
 Preventive health fails most often not because the user did not understand, but because the user did not act. Health Companion owes follow-through:

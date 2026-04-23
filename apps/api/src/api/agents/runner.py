@@ -14,7 +14,15 @@ from typing import Any
 
 from anthropic import AsyncAnthropic
 
-from api.agents.tools import TOOLS, execute_tool
+from api.agents.tools import (
+    TOOLS,
+    execute_tool,
+    get_biomarkers,
+    get_memory,
+    get_profile,
+    get_scheduled_screenings,
+    get_timeline,
+)
 from api.config import get_settings
 
 
@@ -325,8 +333,13 @@ MAX_TOKENS = 6144
 THINKING_EFFORT = "max"
 
 
-def _serialize_block(block: Any) -> dict[str, Any]:
+def _serialize_block(block: Any) -> dict[str, Any] | None:
     """Round-trip a streamed content block into the shape the API accepts as input.
+
+    Returns ``None`` for blocks that should not be replayed to the model on a
+    follow-up turn (summarized thinking is already surfaced to the UI via the
+    ``reasoning_delta`` stream and is not safely replayable in adaptive mode
+    without a proper signature round-trip).
 
     The SDK's ``model_dump`` leaks fields (``parsed_output``, etc.) that the
     Messages API rejects when replayed as the assistant turn. We keep only the
@@ -342,13 +355,73 @@ def _serialize_block(block: Any) -> dict[str, Any]:
             "name": block.name,
             "input": block.input,
         }
-    if btype == "thinking":
-        out = {"type": "thinking", "thinking": block.thinking}
-        signature = getattr(block, "signature", None)
-        if signature is not None:
-            out["signature"] = signature
-        return out
-    raise ValueError(f"Unexpected content block type on assistant turn: {btype}")
+    if btype in ("thinking", "redacted_thinking"):
+        # Adaptive summarized thinking is not replay-safe without signature
+        # round-tripping; skip on the replay path. The user already saw it.
+        return None
+    # Unknown block types are skipped defensively rather than crashing.
+    return None
+
+
+def _serialize_assistant_content(final_message: Any) -> list[dict[str, Any]]:
+    """Assistant content blocks fit for replay. Filters out skipped blocks."""
+    out: list[dict[str, Any]] = []
+    for block in final_message.content:
+        serialized = _serialize_block(block)
+        if serialized is not None:
+            out.append(serialized)
+    return out
+
+
+def _build_state_snapshot() -> str:
+    """Compose the live state snapshot injected on every chat turn.
+
+    The snapshot gives the orchestrator cross-endpoint memory — it can see
+    everything the companion has learned across /api/chat, /api/ingest-pdf,
+    and /api/simulate-months-later, regardless of which endpoint produced a
+    given fact. Without this, asking "explain my labs in Spanish" after a
+    PDF upload fails because the chat endpoint has no access to the lab
+    analysis that /api/ingest-pdf emitted to the frontend.
+
+    The snapshot is sent as the second block of the ``system=`` array with
+    ``cache_control: ephemeral``; the static system prompt is cached on the
+    first block so the snapshot is the only part the API has to read fresh
+    each turn.
+    """
+    profile = get_profile()
+    biomarkers = get_biomarkers()
+    screenings = get_scheduled_screenings()
+    timeline = get_timeline()
+    memory = get_memory()
+
+    # Compact recent timeline with the full lab analyses the frontend already
+    # sees but the chat endpoint used to miss. Keep the last ~10 entries and
+    # drop server-side timestamps to save tokens.
+    compact_timeline = [
+        {k: v for k, v in e.items() if k != "created_at"}
+        for e in timeline[-10:]
+    ]
+
+    snapshot = {
+        "profile": profile,
+        "biomarkers": biomarkers,
+        "scheduled_screenings": screenings,
+        "recent_timeline": compact_timeline,
+        "episodic_memory": memory.get("episodic", [])[-10:],
+        "semantic_memory": memory.get("semantic", []),
+    }
+
+    return (
+        "## Live state snapshot\n\n"
+        "This is everything the user's health companion record currently "
+        "contains. Consult it before responding — the user expects you to "
+        "remember what you have already learned, including labs they "
+        "uploaded, screenings you scheduled, biomarkers you logged, and "
+        "memories you curated. When the user asks you to translate or "
+        "re-explain something (for example, a previous lab analysis), "
+        "pull from this snapshot.\n\n"
+        f"```json\n{json.dumps(snapshot, ensure_ascii=False, indent=2)}\n```"
+    )
 
 
 async def run_chat_turn(messages: list[dict[str, Any]]) -> AsyncIterator[dict[str, Any]]:
@@ -366,6 +439,22 @@ async def run_chat_turn(messages: list[dict[str, Any]]) -> AsyncIterator[dict[st
     settings = get_settings()
     client = AsyncAnthropic(api_key=settings.anthropic_api_key)
 
+    # Compose ``system`` as two blocks so the static clinical prompt caches
+    # across sessions (cheap to reread) and only the live state snapshot is
+    # fresh per turn.
+    state_snapshot = _build_state_snapshot()
+    system_blocks = [
+        {
+            "type": "text",
+            "text": SYSTEM_PROMPT,
+            "cache_control": {"type": "ephemeral"},
+        },
+        {
+            "type": "text",
+            "text": state_snapshot,
+        },
+    ]
+
     while True:
         pending_tool_uses: list[dict[str, Any]] = []
         current_tool_use: dict[str, Any] | None = None
@@ -377,7 +466,7 @@ async def run_chat_turn(messages: list[dict[str, Any]]) -> AsyncIterator[dict[st
             max_tokens=MAX_TOKENS,
             thinking={"type": "adaptive", "display": "summarized"},
             output_config={"effort": THINKING_EFFORT},
-            system=SYSTEM_PROMPT,
+            system=system_blocks,
             tools=TOOLS,
             messages=messages,
         ) as stream:
@@ -437,12 +526,28 @@ async def run_chat_turn(messages: list[dict[str, Any]]) -> AsyncIterator[dict[st
 
             final_message = await stream.get_final_message()
 
+        # Reconcile: every tool_use in the final assistant message must get a
+        # tool_result in the next user message. Our stream-event parser can
+        # miss a tool_use in edge cases; final_message.content is the
+        # authoritative source. Add anything that's missing.
+        pending_ids = {tu["id"] for tu in pending_tool_uses}
+        for block in final_message.content:
+            if getattr(block, "type", None) == "tool_use" and block.id not in pending_ids:
+                pending_tool_uses.append(
+                    {
+                        "id": block.id,
+                        "name": block.name,
+                        "input": block.input,
+                    }
+                )
+                pending_ids.add(block.id)
+
         if not pending_tool_uses:
             yield {"type": "done"}
             return
 
         messages.append(
-            {"role": "assistant", "content": [_serialize_block(b) for b in final_message.content]}
+            {"role": "assistant", "content": _serialize_assistant_content(final_message)}
         )
 
         tool_results: list[dict[str, Any]] = []

@@ -18,7 +18,12 @@ from anthropic import AsyncAnthropic
 from fastapi import APIRouter, File, Form, UploadFile
 from fastapi.responses import StreamingResponse
 
-from api.agents.runner import MODEL, SYSTEM_PROMPT, _serialize_block
+from api.agents.runner import (
+    MODEL,
+    SYSTEM_PROMPT,
+    _serialize_assistant_content,
+    _serialize_block,  # noqa: F401 — re-exported for any direct callers
+)
 from api.agents.tools import (
     append_timeline_event,
     execute_tool,
@@ -141,14 +146,18 @@ async def _stream_turn(
     kwargs: dict[str, Any] = dict(
         model=MODEL,
         max_tokens=MAX_TOKENS,
-        thinking={"type": "adaptive", "display": "summarized"},
-        output_config={"effort": THINKING_EFFORT},
         system=SYSTEM_PROMPT,
         tools=tools,
         messages=messages,
     )
     if tool_choice is not None:
+        # Anthropic rejects thinking + forced tool_choice in the same request.
+        # The forced turn is a pure structured-output emission — no reasoning
+        # needed. The reasoning already streamed during the free turn.
         kwargs["tool_choice"] = tool_choice
+    else:
+        kwargs["thinking"] = {"type": "adaptive", "display": "summarized"}
+        kwargs["output_config"] = {"effort": THINKING_EFFORT}
 
     async with client.messages.stream(**kwargs) as stream:
         async for event in stream:
@@ -209,8 +218,24 @@ async def _stream_turn(
 
         final_message = await stream.get_final_message()
 
+    # Reconcile: every tool_use in final_message must be represented in
+    # pending_tool_uses so the caller can emit a tool_result for each. The
+    # stream-event parser can miss a block in edge cases; final_message is
+    # the authoritative source.
+    pending_ids = {tu["id"] for tu in pending_tool_uses}
+    for block in final_message.content:
+        if getattr(block, "type", None) == "tool_use" and block.id not in pending_ids:
+            pending_tool_uses.append(
+                {
+                    "id": block.id,
+                    "name": block.name,
+                    "input": block.input,
+                }
+            )
+            pending_ids.add(block.id)
+
     messages.append(
-        {"role": "assistant", "content": [_serialize_block(b) for b in final_message.content]}
+        {"role": "assistant", "content": _serialize_assistant_content(final_message)}
     )
     yield {
         "type": "_turn_complete",
@@ -385,6 +410,10 @@ async def ingest_pdf(
                     "laboratory": submitted_analysis.get("laboratory"),
                     "biomarker_count": len(get_biomarkers()),
                     "file_name": file.filename,
+                    # Store the full structured analysis so that the chat
+                    # orchestrator can hydrate its context from the timeline
+                    # on later turns (cross-endpoint memory fix).
+                    "analysis": submitted_analysis,
                 }
                 if note:
                     timeline_payload["note"] = note

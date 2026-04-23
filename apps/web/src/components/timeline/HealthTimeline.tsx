@@ -1,8 +1,14 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
-import type { TimelineEvent } from "@/components/shared/types";
+import { LabTable } from "@/components/labs/LabTable";
+import { ProactiveMessageCard } from "@/components/proactive/ProactiveMessageCard";
+import type {
+  LabAnalysis,
+  ProactiveMessage,
+  TimelineEvent,
+} from "@/components/shared/types";
 
 // ---------------------------------------------------------------------------
 // Event styling
@@ -66,12 +72,25 @@ function formatOccurredOn(s?: string | null): string {
   });
 }
 
+function formatOccurredOnLong(s?: string | null): string {
+  if (!s) return "—";
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s);
+  if (!m) return s;
+  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])));
+  return d.toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}
+
 function eventKey(e: TimelineEvent): string {
   return `${e.event_type}|${e.occurred_on}|${e.created_at}`;
 }
 
 // ---------------------------------------------------------------------------
-// Payload summaries
+// Payload summaries (collapsed-row tagline)
 // ---------------------------------------------------------------------------
 
 function summarizePayload(
@@ -121,6 +140,216 @@ function summarizePayload(
 }
 
 // ---------------------------------------------------------------------------
+// Per-event-type detail renderers
+// ---------------------------------------------------------------------------
+
+function isLabAnalysis(v: unknown): v is LabAnalysis {
+  if (!v || typeof v !== "object") return false;
+  const a = v as Record<string, unknown>;
+  return Array.isArray(a.values) && typeof a.panel_summary === "string";
+}
+
+function LabReportDetail({
+  payload,
+  occurredOn,
+}: {
+  payload: Record<string, unknown>;
+  occurredOn?: string | null;
+}) {
+  const analysis = payload.analysis;
+  const laboratory = (payload.laboratory as string | undefined) ?? null;
+  const fileName = (payload.file_name as string | undefined) ?? null;
+  const note = (payload.note as string | undefined) ?? null;
+  const summary = (payload.summary as string | undefined) ?? null;
+  const headerDate = formatOccurredOnLong(occurredOn);
+
+  return (
+    <div className="space-y-3">
+      <div className="text-[11px] uppercase tracking-wider text-zinc-500">
+        Read on {headerDate}
+        {laboratory ? ` · ${laboratory}` : ""}
+        {fileName ? ` · ${fileName}` : ""}
+      </div>
+      {isLabAnalysis(analysis) ? (
+        <LabTable analysis={analysis} />
+      ) : summary ? (
+        <div className="rounded-lg border border-zinc-200 bg-white px-4 py-3 text-[13px] leading-relaxed text-zinc-700">
+          {summary}
+        </div>
+      ) : (
+        <div className="rounded-lg border border-zinc-200 bg-white px-4 py-3 text-[12px] italic text-zinc-500">
+          The full analysis is no longer attached to this entry.
+        </div>
+      )}
+      {note && (
+        <div className="rounded-md bg-zinc-50 px-3 py-2 text-[12px] leading-snug text-zinc-600">
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
+            Note
+          </div>
+          <div className="mt-0.5">{note}</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function isProactiveMessage(v: unknown): v is ProactiveMessage {
+  if (!v || typeof v !== "object") return false;
+  const m = v as Record<string, unknown>;
+  return typeof m.text === "string";
+}
+
+function ProactiveMessageDetail({
+  payload,
+}: {
+  payload: Record<string, unknown>;
+}) {
+  if (!isProactiveMessage(payload)) {
+    return (
+      <div className="rounded-lg border border-zinc-200 bg-white px-4 py-3 text-[12px] italic text-zinc-500">
+        No proactive message content on record.
+      </div>
+    );
+  }
+  const message: ProactiveMessage = {
+    text: payload.text as string,
+    context_refs: Array.isArray(payload.context_refs)
+      ? (payload.context_refs as string[])
+      : [],
+    next_step:
+      typeof payload.next_step === "string"
+        ? (payload.next_step as string)
+        : "",
+    months_later:
+      typeof payload.months_later === "number"
+        ? (payload.months_later as number)
+        : undefined,
+  };
+  return <ProactiveMessageCard message={message} />;
+}
+
+function ScreeningScheduledDetail({
+  payload,
+}: {
+  payload: Record<string, unknown>;
+}) {
+  const kind = payload.kind as string | undefined;
+  const recommendedBy = payload.recommended_by as string | undefined;
+  const dueBy = payload.due_by as string | undefined;
+  const rationale = payload.rationale as string | undefined;
+
+  return (
+    <dl className="space-y-2 rounded-lg border border-zinc-200 bg-white px-4 py-3 text-[13px] text-zinc-700">
+      <div className="flex flex-wrap gap-x-2">
+        <dt className="w-28 shrink-0 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
+          Screening
+        </dt>
+        <dd className="min-w-0 flex-1 text-zinc-900">
+          {kind ? humanize(kind) : "—"}
+        </dd>
+      </div>
+      <div className="flex flex-wrap gap-x-2">
+        <dt className="w-28 shrink-0 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
+          Recommended by
+        </dt>
+        <dd className="min-w-0 flex-1">{recommendedBy ?? "—"}</dd>
+      </div>
+      <div className="flex flex-wrap gap-x-2">
+        <dt className="w-28 shrink-0 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
+          Due by
+        </dt>
+        <dd className="min-w-0 flex-1 tabular-nums">
+          {dueBy ? formatOccurredOnLong(dueBy) : "No specific date"}
+        </dd>
+      </div>
+      {rationale && (
+        <div className="flex flex-wrap gap-x-2">
+          <dt className="w-28 shrink-0 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
+            Rationale
+          </dt>
+          <dd className="min-w-0 flex-1 leading-snug">{rationale}</dd>
+        </div>
+      )}
+    </dl>
+  );
+}
+
+function OnboardingDetail({
+  payload,
+}: {
+  payload: Record<string, unknown>;
+}) {
+  const summary = (payload.summary as string | undefined) ?? "Profile started";
+  const snapshot = payload.profile_snapshot;
+  const entries =
+    snapshot && typeof snapshot === "object" && !Array.isArray(snapshot)
+      ? Object.entries(snapshot as Record<string, unknown>)
+      : [];
+
+  return (
+    <div className="space-y-3">
+      <p className="rounded-lg border border-zinc-200 bg-white px-4 py-3 text-[13px] leading-relaxed text-zinc-700">
+        {summary}
+      </p>
+      {entries.length > 0 && (
+        <div className="rounded-lg border border-zinc-200 bg-white px-4 py-3">
+          <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
+            Profile at that moment
+          </div>
+          <ul className="mt-2 space-y-1 text-[12px] text-zinc-700">
+            {entries.map(([k, v]) => (
+              <li key={k} className="flex flex-wrap gap-x-2">
+                <span className="w-28 shrink-0 font-mono text-[11px] text-zinc-500">
+                  {k}
+                </span>
+                <span className="min-w-0 flex-1 break-words font-mono text-zinc-900">
+                  {typeof v === "object" ? JSON.stringify(v) : String(v)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function UnknownDetail({ payload }: { payload: Record<string, unknown> }) {
+  let body: string;
+  try {
+    body = JSON.stringify(payload, null, 2);
+  } catch {
+    body = String(payload);
+  }
+  return (
+    <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2">
+      <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
+        Raw details
+      </div>
+      <pre className="mt-1 max-w-full overflow-x-auto whitespace-pre-wrap break-words text-[11px] leading-snug text-zinc-700">
+        {body}
+      </pre>
+    </div>
+  );
+}
+
+function renderDetail(event: TimelineEvent) {
+  const payload = event.payload ?? {};
+  switch (event.event_type) {
+    case "lab_report":
+      return <LabReportDetail payload={payload} occurredOn={event.occurred_on} />;
+    case "proactive_message":
+      return <ProactiveMessageDetail payload={payload} />;
+    case "screening_scheduled":
+      return <ScreeningScheduledDetail payload={payload} />;
+    case "onboarding":
+      return <OnboardingDetail payload={payload} />;
+    default:
+      return <UnknownDetail payload={payload} />;
+  }
+}
+
+// ---------------------------------------------------------------------------
 // HealthTimeline
 // ---------------------------------------------------------------------------
 
@@ -140,14 +369,20 @@ export function HealthTimeline({
   subtitle = "Everything your companion remembers.",
   embedded = false,
 }: Props) {
+  // Newest first — flip the comparator so the most recent entry sits on top.
   const sorted = useMemo(() => {
     return [...events].sort((a, b) => {
       const ao = a.occurred_on ?? "";
       const bo = b.occurred_on ?? "";
-      if (ao !== bo) return ao.localeCompare(bo);
-      return (a.created_at ?? "").localeCompare(b.created_at ?? "");
+      if (ao !== bo) return bo.localeCompare(ao);
+      return (b.created_at ?? "").localeCompare(a.created_at ?? "");
     });
   }, [events]);
+
+  // Single-open accordion: track the key of the currently expanded row, or
+  // null when everything is collapsed. One-at-a-time keeps scroll disciplined
+  // on mobile and on the desktop side column.
+  const [expandedKey, setExpandedKey] = useState<string | null>(null);
 
   const body = (
     <div className="px-5 py-4">
@@ -164,45 +399,85 @@ export function HealthTimeline({
           />
           {sorted.map((e) => {
             const s = styleFor(e.event_type);
-            const flashing = recentlyAdded.has(eventKey(e));
+            const key = eventKey(e);
+            const flashing = recentlyAdded.has(key);
+            const expanded = expandedKey === key;
             const summary = summarizePayload(e.event_type, e.payload ?? {});
+            const detailId = `timeline-detail-${key.replace(/[^a-zA-Z0-9_-]/g, "_")}`;
+
             return (
-              <li
-                key={eventKey(e)}
-                className={
-                  "relative rounded-lg border px-3 py-2.5 transition-colors " +
-                  (flashing
-                    ? "border-amber-300 bg-amber-50/60"
-                    : "border-zinc-200 bg-zinc-50")
-                }
-              >
+              <li key={key} className="relative">
                 <span
                   aria-hidden
                   className={
-                    "absolute -left-[22px] top-3 h-3 w-3 rounded-full ring-2 ring-white " +
-                    s.dot +
-                    " " +
-                    "ring-offset-0"
+                    "absolute -left-[13px] top-3 h-3 w-3 rounded-full ring-2 ring-white " +
+                    s.dot
                   }
                 />
-                <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <span
-                    className={
-                      "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium " +
-                      s.chip
+                <div
+                  className={
+                    "rounded-lg border transition-colors " +
+                    (flashing
+                      ? "border-emerald-300 bg-emerald-50"
+                      : expanded
+                        ? "border-zinc-300 bg-white"
+                        : "border-zinc-200 bg-zinc-50")
+                  }
+                >
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setExpandedKey((cur) => (cur === key ? null : key))
                     }
+                    aria-expanded={expanded}
+                    aria-controls={detailId}
+                    className="flex w-full items-start gap-2 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 focus-visible:ring-offset-1"
                   >
-                    {s.label}
-                  </span>
-                  <time className="text-[11px] tabular-nums text-zinc-500">
-                    {formatOccurredOn(e.occurred_on)}
-                  </time>
+                    <svg
+                      aria-hidden
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                      className={
+                        "mt-[5px] h-3 w-3 shrink-0 text-zinc-400 transition-transform " +
+                        (expanded ? "rotate-90" : "rotate-0")
+                      }
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M7.21 14.77a.75.75 0 0 1 .02-1.06L10.44 10 7.23 6.29a.75.75 0 1 1 1.08-1.04l3.75 4.25a.75.75 0 0 1 0 1.04l-3.75 4.25a.75.75 0 0 1-1.1.02Z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-baseline justify-between gap-2">
+                        <span
+                          className={
+                            "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium " +
+                            s.chip
+                          }
+                        >
+                          {s.label}
+                        </span>
+                        <time className="text-[11px] tabular-nums text-zinc-500">
+                          {formatOccurredOn(e.occurred_on)}
+                        </time>
+                      </div>
+                      {summary && (
+                        <div className="mt-1.5 text-[13px] leading-snug text-zinc-700">
+                          {summary}
+                        </div>
+                      )}
+                    </div>
+                  </button>
+                  {expanded && (
+                    <div
+                      id={detailId}
+                      className="border-t border-zinc-200 px-3 py-3 pl-6 sm:pl-7"
+                    >
+                      {renderDetail(e)}
+                    </div>
+                  )}
                 </div>
-                {summary && (
-                  <div className="mt-1.5 text-[13px] leading-snug text-zinc-700">
-                    {summary}
-                  </div>
-                )}
               </li>
             );
           })}

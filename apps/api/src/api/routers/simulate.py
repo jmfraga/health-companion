@@ -30,7 +30,12 @@ from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
-from api.agents.runner import MODEL, SYSTEM_PROMPT, _serialize_block
+from api.agents.runner import (
+    MODEL,
+    SYSTEM_PROMPT,
+    _serialize_assistant_content,
+    _serialize_block,  # noqa: F401
+)
 from api.agents.tools import (
     append_timeline_event,
     get_biomarkers,
@@ -220,14 +225,16 @@ async def _stream_turn(
     kwargs: dict[str, Any] = dict(
         model=MODEL,
         max_tokens=MAX_TOKENS,
-        thinking={"type": "adaptive", "display": "summarized"},
-        output_config={"effort": THINKING_EFFORT},
         system=SYSTEM_PROMPT,
         tools=[SUBMIT_PROACTIVE_TOOL],
         messages=messages,
     )
     if tool_choice is not None:
+        # Anthropic rejects thinking + forced tool_choice in the same request.
         kwargs["tool_choice"] = tool_choice
+    else:
+        kwargs["thinking"] = {"type": "adaptive", "display": "summarized"}
+        kwargs["output_config"] = {"effort": THINKING_EFFORT}
 
     async with client.messages.stream(**kwargs) as stream:
         async for event in stream:
@@ -278,8 +285,21 @@ async def _stream_turn(
 
         final_message = await stream.get_final_message()
 
+    # Reconcile tool_use blocks — stream parser can miss one in edge cases.
+    pending_ids = {tu["id"] for tu in pending_tool_uses}
+    for block in final_message.content:
+        if getattr(block, "type", None) == "tool_use" and block.id not in pending_ids:
+            pending_tool_uses.append(
+                {
+                    "id": block.id,
+                    "name": block.name,
+                    "input": block.input,
+                }
+            )
+            pending_ids.add(block.id)
+
     messages.append(
-        {"role": "assistant", "content": [_serialize_block(b) for b in final_message.content]}
+        {"role": "assistant", "content": _serialize_assistant_content(final_message)}
     )
     yield {
         "type": "_turn_complete",

@@ -445,3 +445,76 @@ This is **not** a two-product strategy. It is **one product, two adoption paths,
 - *"Semantic precision has clinical value. Help the user name themselves accurately — it makes the doctor's 15 minutes count for more."*
 - *"Prefer calibrated caution to automatic positive reinforcement."* (New anti-pattern for hc-clinical.)
 - *"Privacy has to be a clause in the product, not a paragraph in the Terms."*
+
+### Design decision — reasoning visibility (April 22, afternoon)
+
+Question that surfaced while testing: does the end user *need* to see extended-thinking output as a live disclosure?
+
+The answer we settled on is nuanced and reshapes the Phase 0 UX slightly:
+
+**Three layers of visibility, with defaults tuned to the adoption path:**
+
+1. **Always-on: a one-line "why" tag above the assistant bubble.** A short natural-language rationale for the turn ("Because of your maternal family history of breast cancer, I lean toward earlier screening"). This is the user-facing explicability layer that lands for *every* user, regardless of sophistication. Non-threatening, calibrated, and honest about the single driver of the answer.
+2. **Opt-in: the full "See reasoning" disclosure (today's feature).** Off by default. A toggle lives in Settings / Privacy — "Show reasoning in conversations". Hans-path users flip it on and see the clinical note streaming live. Laura-path users never see it unless they go looking.
+3. **Always written: permanent audit log.** Every turn's full reasoning is persisted — never shown to the user unless they explicitly request a transcript, but available to their treating physician (with user consent) and to us for clinical-quality review, outcome research, and regulatory response.
+
+**Why this balance**:
+
+- Hans's feedback valued clinical transparency, which the log + the opt-in disclosure satisfy.
+- Hans's *other* feedback cautioned against LLM validation bias. Raw reasoning often hedges ("possibly X", "consider Y") in ways an anxious user can latch onto above the final calibrated answer. Default-off reasoning protects Laura-path users from that failure mode without removing it from the adoption ladder.
+- The one-line "why" gives *every* user something real to stand on without overwhelming them.
+- The permanent log is the responsibility clause for publication, audit, and clinician verification — without burdening the user-facing surface.
+
+**For the hackathon MVP**: the "See reasoning" disclosure stays visible as shipped (it is the wow moment). The user-facing framing in `/how-this-works` and in the submission description explains the three-layer model so a judge asking "what about anxious patients?" has an answer. Implementing the toggle + the one-line "why" lands in Phase 1 — neither fits the remaining hackathon budget without stealing polish.
+
+**For Phase 1** (ROADMAP §6 clinical-transparency thread now reads):
+- Default-off full reasoning disclosure with a Settings toggle.
+- Always-on one-line "why" tag above every clinical turn.
+- Always-written permanent audit log, shareable with the treating physician.
+
+Quotable ⭐:
+> *"Three layers of reasoning visibility: a one-line why for everyone, the full note for those who want it, an audit log for the doctor."*
+
+### Cross-endpoint memory — bug caught during live testing
+
+While Juan Manuel was live-testing the chat + lab upload flow, he asked the companion (in Spanish) to re-explain a lab analysis it had just produced. The companion answered like it had never seen the lab. This was not a prompt problem; it was an architectural one.
+
+**Root cause**: the state the companion accumulates is divided by endpoint — `/api/chat` receives the conversation messages from the frontend; `/api/ingest-pdf` produces a `LabAnalysis` that streams to the frontend as a structured SSE event but never lands in the messages array. Biomarkers and timeline entries were persisted server-side but the chat orchestrator had no reference to them when the next user turn arrived. The companion was cegato de su propia salida.
+
+**Fix** (shipped during the same session): inject a live state snapshot at the start of every `/api/chat` turn as the second block of the `system=` array, with prompt caching enabled so cost does not blow up. The snapshot carries the current profile, scheduled screenings, biomarkers, recent timeline (including the full `LabAnalysis` payloads for past lab uploads), and memory (episodic + semantic). The `labs.py` ingest endpoint was also updated to store the full `submitted_analysis` inside the timeline entry's payload — so the chat orchestrator reads it naturally from the shared state.
+
+**Why this matters beyond the demo**: cross-endpoint memory is the product's core value, not a nice-to-have. The companion's claim — "I remember what you told me, I remember what we did together" — has to hold even when "we" spans multiple backend flows. The fix is the architecture that earns that claim.
+
+Quotable ⭐:
+> *"Memory is not one endpoint's problem. It is the product."*
+
+### Product taxonomy — four timelines, not one
+
+Juan Manuel's live-testing feedback crystallized a cleaner product taxonomy. The app is not just a conversation log; it is four complementary timelines:
+
+| Layer | Time direction | Contents |
+|---|---|---|
+| **Timeline** | Past | What the companion observed and logged: consults, labs uploaded, proactive messages received, screenings scheduled, conversations worth keeping. |
+| **Next Steps / Commitments** | Future | What the user is scheduled or has committed to do: next doctor's appointment, pending study, medication refill, follow-up call, clarifying question they want to ask at the next visit. |
+| **Screenings** | Future (preventive) | A curated subset of Next Steps — preventive checkups driven by age, sex, family history, local-guideline cadence. Lives visually alongside Next Steps but has its own logic (guideline source + due cadence + rationale). |
+| **Habits** | Recurring | Behavioral commitments with daily or weekly tracking — hydration, sleep hours, walking minutes, days without tobacco, medication adherence, mood check-in. Includes Hans's proxy indicators pattern ("handshake 0–10" scaled per condition). |
+
+This is **not** a UI segmentation exercise. It is the frame that makes the *living state document* legible: past + future + preventive + recurring.
+
+**Phase 0 (this week) implements only Timeline** — with expand-on-click per-entry detail rendering so the past is consultable. The other three are articulated in the roadmap and the submission narrative but not built. The pitch line:
+
+⭐ *"We built Timeline in v0.1 because the past is what you cannot fix later. Next Steps, Screenings, and Habits land as the companion's memory extends into the future with you."*
+
+### MVP additions articulated (some landing now, some Phase 1)
+
+- **Cross-endpoint memory fix** — shipped during this session. Quiet but load-bearing.
+- **Timeline expand-on-click** with per-event-type detail rendering — delegated to `hc-frontend` in parallel right now. Lab entries re-render the `LabTable`; proactive entries re-render the `ProactiveMessageCard`; screenings show their rationale; unknown types fall back to a JSON card. Lands in this session.
+- **Screening "why" tag** (one-line rationale per card) — deferred to Phase 1 first sprint.
+- **User photo + Settings surface** — deferred to Friday polish if budget allows; Phase 1 otherwise.
+- **Unified multimodal input ("+" in composer like Claude.ai)** — this is the correct UX and Juan Manuel flagged it explicitly. Deferred to Phase 1 day-one (~2 hours of rework). For Phase 0 the drop-zone stays separate but the intent is captured.
+- **Next Steps / Commitments section** — articulated in ROADMAP capability thread, not built Phase 0.
+- **Habits tracking with proxy indicators** — articulated in ROADMAP as own thread, not built Phase 0.
+
+### The re-upload bug Juan Manuel noticed
+
+Juan Manuel tried to upload the same lab PDF a second time after the first 400 bug and the drop zone would not respond. Likely the browser `<input type="file">` does not fire `change` when the selected filename matches the prior one. Quick fix when we revisit the drop zone: clear `inputRef.current.value = ""` after each upload attempt so the same file can be picked again. Captured here; will apply when we next touch `LabDropZone`.

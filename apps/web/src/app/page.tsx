@@ -362,7 +362,9 @@ function ChatExperience() {
     });
   }, [messages]);
 
-  // Hydrate timeline on mount so the widget is not empty on reload.
+  // Hydrate every right-column widget on mount so a page reload does not
+  // wipe the user's accumulated state — the backend still has it, the UI
+  // just needs to ask. Timeline, profile, screenings, biomarkers in one go.
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -370,14 +372,30 @@ function ChatExperience() {
         const token = await getAccessToken();
         const headers: Record<string, string> = {};
         if (token) headers.Authorization = `Bearer ${token}`;
-        const res = await fetch(`${API_URL}/api/timeline`, { headers });
-        if (!res.ok) return;
-        const body = (await res.json()) as { timeline?: TimelineEvent[] };
-        if (!cancelled && Array.isArray(body.timeline)) {
-          setTimeline(body.timeline);
+
+        const results = await Promise.allSettled([
+          fetch(`${API_URL}/api/timeline`, { headers }).then((r) => r.json()),
+          fetch(`${API_URL}/api/profile`, { headers }).then((r) => r.json()),
+          fetch(`${API_URL}/api/screenings`, { headers }).then((r) => r.json()),
+          fetch(`${API_URL}/api/biomarkers`, { headers }).then((r) => r.json()),
+        ]);
+        if (cancelled) return;
+
+        const [tl, pr, sc, bm] = results;
+        if (tl.status === "fulfilled" && Array.isArray(tl.value?.timeline)) {
+          setTimeline(tl.value.timeline as TimelineEvent[]);
+        }
+        if (pr.status === "fulfilled" && pr.value?.profile) {
+          setProfile(pr.value.profile as ProfileSnapshot);
+        }
+        if (sc.status === "fulfilled" && Array.isArray(sc.value?.screenings)) {
+          setScreenings(sc.value.screenings as ScreeningEntry[]);
+        }
+        if (bm.status === "fulfilled" && Array.isArray(bm.value?.biomarkers)) {
+          setBiomarkers(bm.value.biomarkers as Biomarker[]);
         }
       } catch {
-        // Silent — timeline will hydrate on the first turn anyway.
+        // Silent — first chat turn will repopulate via snapshot events.
       }
     })();
     return () => {
