@@ -46,6 +46,15 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+  /* Health Companion semantic palette (Claude Design handoff) */
+  --color-amber-bg: var(--hc-amber-bg);
+  --color-amber-border: var(--hc-amber-border);
+  --color-amber-fg: var(--hc-amber-fg);
+  --color-blue-bg: var(--hc-blue-bg);
+  --color-blue-border: var(--hc-blue-border);
+  --color-blue-fg: var(--hc-blue-fg);
+  --color-companion: var(--hc-accent-600);
+  --color-companion-soft: var(--hc-accent-50);
 }
 
 :root {
@@ -81,6 +90,27 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  /* Health Companion semantic palette — light (Claude Design handoff) */
+  --hc-amber-bg: #fffbeb;
+  --hc-amber-border: #fde68a;
+  --hc-amber-fg: #92400e;
+  --hc-blue-bg: #eff6ff;
+  --hc-blue-border: #bfdbfe;
+  --hc-blue-fg: #1d4ed8;
+  --hc-red-bg: #fef2f2;
+  --hc-red-border: #fecaca;
+  --hc-red-fg: #b91c1c;
+  --hc-accent-50: #ecfdf5;
+  --hc-accent-100: #d1fae5;
+  --hc-accent-200: #a7f3d0;
+  --hc-accent-500: #10b981;
+  --hc-accent-600: #059669;
+  --hc-accent-700: #047857;
+  /* Motion tokens */
+  --motion-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --motion-base: 240ms cubic-bezier(0.4, 0, 0.2, 1);
+  --motion-slow: 420ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  --motion-settle: 720ms cubic-bezier(0.22, 0.61, 0.36, 1);
 }
 
 .dark {
@@ -113,6 +143,22 @@
   --sidebar-primary-foreground: oklch(0.985 0 0);
   --sidebar-accent: oklch(0.269 0 0);
   --sidebar-accent-foreground: oklch(0.985 0 0);
+  /* Health Companion semantic palette — dark */
+  --hc-amber-bg: rgba(120, 80, 20, 0.18);
+  --hc-amber-border: rgba(251, 191, 36, 0.28);
+  --hc-amber-fg: #fbbf24;
+  --hc-blue-bg: rgba(30, 64, 150, 0.18);
+  --hc-blue-border: rgba(96, 165, 250, 0.28);
+  --hc-blue-fg: #93c5fd;
+  --hc-red-bg: rgba(120, 20, 20, 0.2);
+  --hc-red-border: rgba(239, 68, 68, 0.3);
+  --hc-red-fg: #fca5a5;
+  --hc-accent-50: #064e3b;
+  --hc-accent-100: #065f46;
+  --hc-accent-200: #047857;
+  --hc-accent-500: #10b981;
+  --hc-accent-600: #34d399;
+  --hc-accent-700: #6ee7b7;
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
 }
@@ -127,4 +173,20 @@
   html {
     @apply font-sans;
   }
+}
+
+/* Health Companion reading-state pulse — used by the lab drop-zone's
+   animated "still thinking" step indicator. */
+@keyframes hc-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.85;
+  }
+  50% {
+    transform: scale(1.25);
+    opacity: 1;
+  }
+}
+.hc-pulse {
+  animation: hc-pulse 1.2s ease-in-out infinite;
 }

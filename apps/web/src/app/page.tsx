@@ -3,16 +3,27 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Clock, ShieldCheck, Sparkles, User } from "lucide-react";
+import {
+  Heart,
+  Paperclip,
+  Send,
+  ShieldCheck,
+  Sparkles,
+  User,
+} from "lucide-react";
 
 import { useAuth } from "@/lib/auth-context";
 import { getAccessToken } from "@/lib/supabase";
 import { EmergencyPill } from "@/components/common/EmergencyPill";
+import { ReasoningSheet } from "@/components/common/ReasoningSheet";
 import { LabDropZone } from "@/components/labs/LabDropZone";
 import { LabTable } from "@/components/labs/LabTable";
 import { MonthsLaterFade } from "@/components/proactive/MonthsLaterFade";
+import { ProactiveLetter } from "@/components/proactive/ProactiveLetter";
 import { ProactiveMessageCard } from "@/components/proactive/ProactiveMessageCard";
 import { HealthTimeline } from "@/components/timeline/HealthTimeline";
+import { ScheduleCard, type ScheduleRow } from "@/components/chat/ScheduleCard";
+import { ToolTraceCard, type ToolCall } from "@/components/chat/ToolTraceCard";
 import type {
   Biomarker,
   LabAnalysis,
@@ -20,29 +31,18 @@ import type {
   TimelineEvent,
 } from "@/components/shared/types";
 
-// First sentence of the reasoning — the layer the development journal
-// calls "a one-line why for everyone". Strips markdown-flavored prefixes
-// and caps length so the tag never dominates the bubble.
-function firstReasoningLine(reasoning: string | undefined | null): string {
-  if (!reasoning) return "";
-  const trimmed = reasoning.trim();
-  if (!trimmed) return "";
-  // Strip a leading markdown heading / list marker so the tag reads as prose.
-  const cleaned = trimmed.replace(/^([#>*\-]+\s*)+/, "");
-  const m = cleaned.split(/\.\s/);
-  const first = (m[0] || cleaned).trim();
-  if (first.length <= 140) {
-    return first.endsWith(".") ? first : first + ".";
-  }
-  return first.slice(0, 120).trimEnd() + "…";
-}
-
 type ChatMessage = {
   role: "user" | "assistant" | "proactive" | "system";
   content: string;
   reasoning?: string;
   labAnalysis?: LabAnalysis;
   proactive?: ProactiveMessage;
+  /** Tool calls observed during this assistant turn (for inline trace). */
+  toolCalls?: ToolCall[];
+  /** Screenings scheduled during this assistant turn (for ScheduleCard). */
+  scheduledScreenings?: ScheduleRow[];
+  /** Locally-generated timestamp for user bubbles. */
+  sentAt?: string;
 };
 
 type ProfileSnapshot = Record<string, unknown>;
@@ -118,6 +118,21 @@ function humanizeKind(kind: string): string {
   return kind
     .replace(/_/g, " ")
     .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+// Extract a first name from the live-profile panel so ProactiveLetter
+// can greet the user by name. The backend uses a soft contract — the
+// key varies — so we probe a handful of likely candidates and fall
+// back to the first word of any name-like value.
+function firstNameFromProfile(profile: Record<string, unknown>): string | null {
+  const keys = ["first_name", "preferred_name", "given_name", "name", "full_name"];
+  for (const k of keys) {
+    const v = profile[k];
+    if (typeof v === "string" && v.trim().length > 0) {
+      return v.trim().split(/\s+/)[0];
+    }
+  }
+  return null;
 }
 
 function formatDueBy(due: string | null | undefined): string {
@@ -370,7 +385,8 @@ function ChatExperience() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [reasoningActiveIndex, setReasoningActiveIndex] = useState<number | null>(null);
-  const [expandedReasoning, setExpandedReasoning] = useState<Set<number>>(new Set());
+  const [reasoningSheetMsg, setReasoningSheetMsg] =
+    useState<ChatMessage | null>(null);
   const [sheet, setSheet] = useState<
     null | "profile" | "screenings" | "timeline" | "upload"
   >(null);
@@ -476,6 +492,32 @@ function ChatExperience() {
           return copy;
         });
       } else if (event.type === "tool_use") {
+        // Attach a "running" tool call entry to the current assistant turn so
+        // the in-thread ToolTraceCard lights up as the calls arrive. Keep
+        // the top-level side effects (profile / screening / biomarker) in
+        // sync with the dedicated panels on the right column.
+        setMessages((prev) => {
+          const copy = [...prev];
+          const lastIdx = copy.length - 1;
+          const last = copy[lastIdx];
+          if (last && (last.role === "assistant" || last.role === "proactive")) {
+            const existing = last.toolCalls ?? [];
+            copy[lastIdx] = {
+              ...last,
+              toolCalls: [
+                ...existing,
+                {
+                  id: event.id,
+                  name: event.name,
+                  input: event.input,
+                  status: "running",
+                },
+              ],
+            };
+          }
+          return copy;
+        });
+
         if (event.name === "save_profile_field") {
           const field = String((event.input as Record<string, unknown>).field ?? "");
           const value = (event.input as Record<string, unknown>).value;
@@ -498,11 +540,61 @@ function ChatExperience() {
               return [...prev, entry];
             });
             flashScreening(key);
+
+            // Also stash a human-friendly row on the current assistant turn,
+            // so the inline ScheduleCard can render alongside the prose.
+            const row: ScheduleRow = {
+              kind,
+              name: humanizeKind(kind),
+              when: formatDueBy(due_by),
+              sub: recommended_by || "Routine preventive check.",
+            };
+            setMessages((prev) => {
+              const copy = [...prev];
+              const lastIdx = copy.length - 1;
+              const last = copy[lastIdx];
+              if (
+                last &&
+                (last.role === "assistant" || last.role === "proactive")
+              ) {
+                const existing = last.scheduledScreenings ?? [];
+                // Dedupe by kind|when so repeated tool calls don't stack.
+                if (
+                  !existing.some(
+                    (r) => r.kind === row.kind && r.when === row.when
+                  )
+                ) {
+                  copy[lastIdx] = {
+                    ...last,
+                    scheduledScreenings: [...existing, row],
+                  };
+                }
+              }
+              return copy;
+            });
           }
         } else if (event.name === "log_biomarker") {
           const inp = event.input as Biomarker;
           setBiomarkers((prev) => [...prev, inp]);
         }
+      } else if (event.type === "tool_result") {
+        // Flip the matching call from "running" -> "done" so the dot turns
+        // emerald in the in-thread ToolTraceCard.
+        setMessages((prev) => {
+          const copy = [...prev];
+          for (let i = copy.length - 1; i >= 0; i -= 1) {
+            const m = copy[i];
+            if (!m.toolCalls) continue;
+            const hit = m.toolCalls.findIndex((c) => c.id === event.id);
+            if (hit !== -1) {
+              const next = m.toolCalls.slice();
+              next[hit] = { ...next[hit], status: "done" };
+              copy[i] = { ...m, toolCalls: next };
+              break;
+            }
+          }
+          return copy;
+        });
       } else if (event.type === "profile_snapshot") {
         setProfile(event.profile);
       } else if (event.type === "screenings_snapshot") {
@@ -633,9 +725,13 @@ function ChatExperience() {
     const trimmed = input.trim();
     if (!trimmed || busy) return;
 
+    const sentAt = new Date().toLocaleTimeString([], {
+      hour: "numeric",
+      minute: "2-digit",
+    });
     const nextMessages: ChatMessage[] = [
       ...messages,
-      { role: "user", content: trimmed },
+      { role: "user", content: trimmed, sentAt },
     ];
     setMessages(nextMessages);
     setInput("");
@@ -820,16 +916,11 @@ function ChatExperience() {
     simulatePendingRef.current = null;
   }, []);
 
-  const toggleReasoning = useCallback((idx: number) => {
-    setExpandedReasoning((prev) => {
-      const next = new Set(prev);
-      if (next.has(idx)) {
-        next.delete(idx);
-      } else {
-        next.add(idx);
-      }
-      return next;
-    });
+  const openReasoning = useCallback((m: ChatMessage) => {
+    setReasoningSheetMsg(m);
+  }, []);
+  const closeReasoning = useCallback(() => {
+    setReasoningSheetMsg(null);
   }, []);
 
   const profileCount = Object.keys(profile).length;
@@ -934,25 +1025,58 @@ function ChatExperience() {
                 !!m.reasoning &&
                 m.reasoning.length > 0;
               const isReasoningActive = reasoningActiveIndex === i;
-              const isExpanded = expandedReasoning.has(i);
 
-              const whyLine =
-                (m.role === "assistant" || m.role === "proactive") &&
-                m.reasoning
-                  ? firstReasoningLine(m.reasoning)
-                  : "";
-
-              // Proactive message bubble: dedicated card, full width.
-              if (m.role === "proactive") {
+              // USER — right-aligned accent-filled bubble.
+              if (m.role === "user") {
                 return (
-                  <div key={i} className="mr-auto flex w-full flex-col items-start">
-                    {whyLine && (
-                      <div className="mb-1 inline-flex items-center gap-1 text-[11px] italic text-zinc-500">
-                        <Sparkles className="h-3 w-3 text-amber-500" aria-hidden />
-                        <span>{whyLine}</span>
+                  <div
+                    key={i}
+                    className="ml-auto flex max-w-[86%] flex-col items-end"
+                  >
+                    <div
+                      className="px-3.5 py-2.5 text-[14.5px] leading-[1.5] text-white"
+                      style={{
+                        background: "var(--hc-accent-600)",
+                        borderRadius: "18px 18px 4px 18px",
+                      }}
+                    >
+                      {m.content}
+                    </div>
+                    {m.sentAt && (
+                      <div
+                        className="mt-1 text-right text-[10px] text-muted-foreground"
+                        style={{
+                          fontFamily:
+                            "var(--font-geist-mono, ui-monospace)",
+                        }}
+                      >
+                        {m.sentAt}
                       </div>
                     )}
-                    {m.proactive ? (
+                  </div>
+                );
+              }
+
+              // PROACTIVE — when months_later >= 3, render the full-height
+              // ProactiveLetter. Shorter gaps keep the compact in-thread card.
+              if (m.role === "proactive") {
+                const mo =
+                  typeof m.proactive?.months_later === "number"
+                    ? m.proactive.months_later
+                    : 0;
+                const useLetter = !!m.proactive && mo >= 3;
+                const firstName = firstNameFromProfile(profile);
+                return (
+                  <div
+                    key={i}
+                    className="mr-auto flex w-full flex-col items-start gap-2"
+                  >
+                    {m.proactive && useLetter ? (
+                      <ProactiveLetter
+                        message={m.proactive}
+                        firstName={firstName}
+                      />
+                    ) : m.proactive ? (
                       <ProactiveMessageCard message={m.proactive} />
                     ) : (
                       <div className="w-full rounded-2xl border border-amber-200 bg-amber-50/70 px-4 py-3 text-sm text-amber-900">
@@ -966,124 +1090,122 @@ function ChatExperience() {
                       </div>
                     )}
                     {(hasReasoning || isReasoningActive) && (
-                      <div className="mt-1.5 w-full">
-                        <button
-                          type="button"
-                          onClick={() => toggleReasoning(i)}
-                          aria-expanded={isExpanded}
-                          className="inline-flex min-h-[32px] items-center gap-1.5 rounded-md px-2 py-1 text-[12px] font-medium text-amber-700 transition-colors hover:bg-amber-50 hover:text-amber-900"
-                        >
-                          <svg
-                            aria-hidden="true"
-                            viewBox="0 0 20 20"
-                            fill="currentColor"
-                            className={
-                              "h-3 w-3 transition-transform " +
-                              (isExpanded ? "rotate-90" : "rotate-0")
-                            }
-                          >
-                            <path
-                              fillRule="evenodd"
-                              d="M7.21 14.77a.75.75 0 0 1 .02-1.06L10.44 10 7.23 6.29a.75.75 0 1 1 1.08-1.04l3.75 4.25a.75.75 0 0 1 0 1.04l-3.75 4.25a.75.75 0 0 1-1.1.02Z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
-                          <span>See reasoning</span>
-                          {isReasoningActive && (
-                            <span className="flex items-center gap-1 text-amber-500">
-                              <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-amber-400" />
-                              <span className="italic">thinking…</span>
-                            </span>
-                          )}
-                        </button>
-                        {isExpanded && hasReasoning && (
-                          <div className="mt-1 whitespace-pre-wrap rounded-lg bg-amber-50/40 px-3 py-2.5 text-[13px] leading-relaxed text-amber-900/80 md:text-xs">
-                            {m.reasoning}
-                          </div>
+                      <button
+                        type="button"
+                        onClick={() => openReasoning(m)}
+                        className="inline-flex min-h-[28px] items-center gap-1 px-0 text-[12px] font-medium transition-colors hover:underline"
+                        style={{ color: "var(--hc-amber-fg)" }}
+                      >
+                        <Sparkles className="h-3 w-3" aria-hidden />
+                        <span>See reasoning</span>
+                        {isReasoningActive && (
+                          <span className="ml-1 flex items-center gap-1 text-amber-500">
+                            <span className="hc-pulse inline-block h-1.5 w-1.5 rounded-full bg-amber-400" />
+                            <span className="italic">thinking…</span>
+                          </span>
                         )}
-                      </div>
+                      </button>
                     )}
                   </div>
                 );
               }
 
+              // ASSISTANT — prose companion message (no bubble), optional
+              // ToolTraceCard underneath, optional ScheduleCard for
+              // screenings scheduled in this turn, plus the "See reasoning"
+              // link when extended thinking is available.
+              const showTypingDots =
+                busy &&
+                !m.content &&
+                !m.labAnalysis?.panel_summary &&
+                !hasReasoning &&
+                (m.toolCalls?.length ?? 0) === 0;
+
               return (
                 <div
                   key={i}
-                  className={
-                    m.role === "user"
-                      ? "ml-auto flex max-w-[85%] flex-col items-end"
-                      : "mr-auto flex w-full flex-col items-start"
-                  }
+                  className="mr-auto flex w-full flex-col items-start gap-2"
                 >
-                  {m.role === "assistant" && whyLine && (
-                    <div className="mb-1 inline-flex items-center gap-1 text-[11px] italic text-zinc-500">
-                      <Sparkles className="h-3 w-3 text-zinc-400" aria-hidden />
-                      <span>{whyLine}</span>
+                  {/* Companion header + prose */}
+                  <div className="w-full px-1">
+                    <div className="mb-1.5 flex items-center gap-2">
+                      <div
+                        className="flex h-[22px] w-[22px] items-center justify-center rounded-full text-white"
+                        style={{ background: "var(--hc-accent-600)" }}
+                        aria-hidden
+                      >
+                        <Heart className="h-3 w-3" />
+                      </div>
+                      <span className="text-xs font-semibold text-zinc-900 dark:text-zinc-100">
+                        Your companion
+                      </span>
+                    </div>
+                    {showTypingDots ? (
+                      <span className="inline-flex items-center gap-1 text-zinc-400">
+                        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-zinc-400" />
+                        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-zinc-400 [animation-delay:150ms]" />
+                        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-zinc-400 [animation-delay:300ms]" />
+                      </span>
+                    ) : (
+                      <p className="m-0 max-w-[85%] whitespace-pre-wrap text-[15px] leading-[1.55] tracking-[-0.005em] text-zinc-900 dark:text-zinc-100">
+                        {m.content || m.labAnalysis?.panel_summary || ""}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Inline tool-use trace — memory made visible. */}
+                  {m.toolCalls && m.toolCalls.length > 0 && (
+                    <div className="w-full">
+                      <ToolTraceCard calls={m.toolCalls} />
                     </div>
                   )}
-                  <div
-                    className={
-                      m.role === "user"
-                        ? "rounded-2xl rounded-br-sm bg-zinc-900 px-4 py-2.5 text-[15px] leading-snug text-white md:text-sm"
-                        : "max-w-[85%] rounded-2xl rounded-bl-sm bg-zinc-100 px-4 py-2.5 text-[15px] leading-snug md:text-sm"
-                    }
-                  >
-                    {m.content ||
-                      m.labAnalysis?.panel_summary ||
-                      (m.role === "assistant" && busy && !hasReasoning ? (
-                        <span className="inline-flex items-center gap-1 text-zinc-400">
-                          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-zinc-400" />
-                          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-zinc-400 [animation-delay:150ms]" />
-                          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-zinc-400 [animation-delay:300ms]" />
-                        </span>
-                      ) : (
-                        ""
-                      ))}
-                  </div>
-                  {(hasReasoning || (m.role === "assistant" && isReasoningActive)) && (
-                    <div className="mt-1.5 w-full">
+
+                  {/* Structured follow-up when this turn scheduled screenings */}
+                  {m.scheduledScreenings &&
+                    m.scheduledScreenings.length > 0 && (
+                      <div className="w-full">
+                        <ScheduleCard
+                          rows={m.scheduledScreenings}
+                          onSeeReasoning={() => openReasoning(m)}
+                          onLater={() => {
+                            // Non-destructive: ScheduleCard is ephemeral in
+                            // the transcript; the right-column calendar
+                            // still holds the canonical list.
+                          }}
+                          onAddToPlan={() => {
+                            // The right-column calendar already reflects
+                            // these; treat this as acknowledgement.
+                          }}
+                        />
+                      </div>
+                    )}
+
+                  {/* Lab table (Act 2) */}
+                  {m.labAnalysis && (
+                    <div className="w-full">
+                      <LabTable analysis={m.labAnalysis} />
+                    </div>
+                  )}
+
+                  {/* See reasoning link — opens the full ReasoningSheet. */}
+                  {(hasReasoning || isReasoningActive) &&
+                    !(m.scheduledScreenings && m.scheduledScreenings.length > 0) && (
                       <button
                         type="button"
-                        onClick={() => toggleReasoning(i)}
-                        aria-expanded={isExpanded}
-                        className="inline-flex min-h-[32px] items-center gap-1.5 rounded-md px-2 py-1 text-[12px] font-medium text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-700"
+                        onClick={() => openReasoning(m)}
+                        className="inline-flex min-h-[28px] items-center gap-1 px-1 text-[12px] font-medium transition-colors hover:underline"
+                        style={{ color: "var(--hc-accent-700)" }}
                       >
-                        <svg
-                          aria-hidden="true"
-                          viewBox="0 0 20 20"
-                          fill="currentColor"
-                          className={
-                            "h-3 w-3 transition-transform " +
-                            (isExpanded ? "rotate-90" : "rotate-0")
-                          }
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M7.21 14.77a.75.75 0 0 1 .02-1.06L10.44 10 7.23 6.29a.75.75 0 1 1 1.08-1.04l3.75 4.25a.75.75 0 0 1 0 1.04l-3.75 4.25a.75.75 0 0 1-1.1.02Z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
+                        <Sparkles className="h-3 w-3" aria-hidden />
                         <span>See reasoning</span>
                         {isReasoningActive && (
-                          <span className="flex items-center gap-1 text-zinc-400">
-                            <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-zinc-400" />
+                          <span className="ml-1 flex items-center gap-1 text-zinc-400">
+                            <span className="hc-pulse inline-block h-1.5 w-1.5 rounded-full bg-zinc-400" />
                             <span className="italic">thinking…</span>
                           </span>
                         )}
                       </button>
-                      {isExpanded && hasReasoning && (
-                        <div className="mt-1 whitespace-pre-wrap rounded-lg bg-zinc-50 px-3 py-2.5 text-[13px] leading-relaxed text-zinc-500 md:text-xs">
-                          {m.reasoning}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  {m.role === "assistant" && m.labAnalysis && (
-                    <div className="mt-3 w-full">
-                      <LabTable analysis={m.labAnalysis} />
-                    </div>
-                  )}
+                    )}
                 </div>
               );
             })}
@@ -1158,29 +1280,56 @@ function ChatExperience() {
             </div>
           )}
 
+          {/* Composer — pill-shaped, blurred footer, paperclip + send */}
           <form
             onSubmit={(e) => {
               e.preventDefault();
               void send();
             }}
-            className="flex gap-2 border-t border-zinc-200 px-3 py-3 md:px-4"
-            style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
+            className="border-t border-zinc-200 px-3 py-3 backdrop-blur-md md:px-4"
+            style={{
+              background: "color-mix(in srgb, var(--background) 92%, transparent)",
+              paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))",
+            }}
           >
-            <input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Tell me about yourself..."
-              className="min-h-[44px] flex-1 rounded-full border border-zinc-200 bg-white px-4 py-2 text-base outline-none transition focus:border-zinc-400 focus:ring-2 focus:ring-zinc-200 md:text-sm"
-              disabled={busy}
-              autoFocus
-            />
-            <button
-              type="submit"
-              disabled={busy || !input.trim()}
-              className="min-h-[44px] min-w-[64px] rounded-full bg-zinc-900 px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-300"
-            >
-              {busy ? "…" : "Send"}
-            </button>
+            <div className="flex items-center gap-2 rounded-full border border-zinc-200 bg-muted py-1.5 pl-3.5 pr-1.5 dark:border-zinc-800">
+              <button
+                type="button"
+                onClick={() => {
+                  // Paperclip — points to the LabDropZone flow. On mobile,
+                  // open the upload sheet; on desktop, nudge the user to
+                  // the right-column drop-zone.
+                  if (typeof window !== "undefined" && window.innerWidth < 768) {
+                    setSheet("upload");
+                  } else {
+                    setError(
+                      "To upload labs, drop a PDF into the panel on the right."
+                    );
+                  }
+                }}
+                aria-label="Attach a lab report"
+                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground"
+              >
+                <Paperclip className="h-[18px] w-[18px]" aria-hidden />
+              </button>
+              <input
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Tell me more…"
+                className="min-h-[36px] flex-1 border-0 bg-transparent p-0 text-[14px] text-foreground outline-none placeholder:text-muted-foreground"
+                disabled={busy}
+                autoFocus
+              />
+              <button
+                type="submit"
+                disabled={busy || !input.trim()}
+                aria-label="Send"
+                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-40"
+                style={{ background: "var(--hc-accent-600)" }}
+              >
+                <Send className="h-[14px] w-[14px]" aria-hidden />
+              </button>
+            </div>
           </form>
         </section>
 
@@ -1296,6 +1445,19 @@ function ChatExperience() {
         label={fadeLabel}
         onMidpoint={onFadeMidpoint}
         onComplete={onFadeComplete}
+      />
+
+      {/* See-reasoning sheet — iOS-style on mobile, centered modal on desktop */}
+      <ReasoningSheet
+        open={reasoningSheetMsg !== null}
+        onClose={closeReasoning}
+        reasoning={reasoningSheetMsg?.reasoning ?? ""}
+        subtitle={
+          reasoningSheetMsg?.scheduledScreenings &&
+          reasoningSheetMsg.scheduledScreenings.length > 0
+            ? `Why ${reasoningSheetMsg.scheduledScreenings[0].name.toLowerCase()} ${reasoningSheetMsg.scheduledScreenings[0].when.toLowerCase()}`
+            : undefined
+        }
       />
 
       {/* Emergency affordance — floating bottom-left on desktop. Mobile copy

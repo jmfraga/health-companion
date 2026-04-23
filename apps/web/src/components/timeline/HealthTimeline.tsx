@@ -3,11 +3,11 @@
 import { useMemo, useState } from "react";
 import { Clock } from "lucide-react";
 
-import { DetailOverlay } from "@/components/common/DetailOverlay";
 import { LabTable } from "@/components/labs/LabTable";
 import { ProactiveMessageCard } from "@/components/proactive/ProactiveMessageCard";
 import type {
   LabAnalysis,
+  LabValue,
   ProactiveMessage,
   TimelineEvent,
 } from "@/components/shared/types";
@@ -190,44 +190,177 @@ function isLabAnalysis(v: unknown): v is LabAnalysis {
   return Array.isArray(a.values) && typeof a.panel_summary === "string";
 }
 
-function LabReportDetail({
+// Inline lab-report expansion — matches screen-timeline.jsx::LabExpanded.
+// Renders header row, panel summary, biomarker list (3-col grid per row),
+// and the amber "For your next doctor visit" block. Defensive: renders
+// only the sections that have data.
+function StatusDot({ status }: { status: string }) {
+  const map: Record<string, { bg: string; label: string }> = {
+    ok: { bg: "#10b981", label: "ok" },
+    borderline: { bg: "#f59e0b", label: "watch" },
+    out_of_range: { bg: "#ef4444", label: "out" },
+    critical: { bg: "#ef4444", label: "out" },
+  };
+  const m = map[status] ?? { bg: "#a1a1aa", label: status };
+  return (
+    <div className="flex items-center gap-1.5">
+      <span
+        aria-hidden
+        className="h-[7px] w-[7px] shrink-0 rounded-full"
+        style={{ background: m.bg }}
+      />
+      <span className="font-mono text-[10px] uppercase text-zinc-500">
+        {m.label}
+      </span>
+    </div>
+  );
+}
+
+function LabExpanded({
   payload,
-  occurredOn,
 }: {
   payload: Record<string, unknown>;
-  occurredOn?: string | null;
 }) {
-  const analysis = payload.analysis;
-  const laboratory = (payload.laboratory as string | undefined) ?? null;
-  const fileName = (payload.file_name as string | undefined) ?? null;
-  const note = (payload.note as string | undefined) ?? null;
-  const summary = (payload.summary as string | undefined) ?? null;
-  const headerDate = formatOccurredOnLong(occurredOn);
+  const analysis = isLabAnalysis(payload.analysis)
+    ? (payload.analysis as LabAnalysis)
+    : null;
+
+  const laboratory =
+    (analysis?.laboratory as string | undefined) ??
+    (payload.laboratory as string | undefined) ??
+    null;
+
+  const values: LabValue[] = analysis?.values ?? [];
+  const count =
+    values.length > 0
+      ? values.length
+      : typeof payload.biomarker_count === "number"
+        ? (payload.biomarker_count as number)
+        : 0;
+
+  const panelSummary =
+    analysis?.panel_summary ??
+    (typeof payload.summary === "string"
+      ? (payload.summary as string)
+      : null);
+
+  const flags = analysis?.flags ?? [];
+  // "For your next doctor visit" — fall back to flag messages if
+  // doctor_questions is missing.
+  const doctorQuestions =
+    analysis?.doctor_questions && analysis.doctor_questions.length > 0
+      ? analysis.doctor_questions
+      : flags.length > 0
+        ? flags.map((f) => f.message)
+        : [];
+
+  const subtitleBits: string[] = [];
+  if (laboratory) subtitleBits.push(laboratory);
+  if (count > 0) subtitleBits.push(`${count} biomarkers`);
+  const subtitle = subtitleBits.join(" · ");
 
   return (
-    <div className="space-y-3">
-      <div className="text-[11px] uppercase tracking-wider text-zinc-500">
-        Read on {headerDate}
-        {laboratory ? ` · ${laboratory}` : ""}
-        {fileName ? ` · ${fileName}` : ""}
+    <div className="overflow-hidden rounded-lg border border-zinc-200 bg-white">
+      {/* Header */}
+      <div className="flex items-center gap-2 border-b border-zinc-200 px-3.5 py-3">
+        <span
+          className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium"
+          style={{
+            background: "var(--hc-blue-bg)",
+            color: "var(--hc-blue-fg)",
+            border: "0.5px solid var(--hc-blue-border)",
+          }}
+        >
+          Lab report
+        </span>
+        {subtitle && (
+          <span className="font-mono text-[11.5px] text-zinc-500">
+            {subtitle}
+          </span>
+        )}
       </div>
-      {isLabAnalysis(analysis) ? (
-        <LabTable analysis={analysis} />
-      ) : summary ? (
-        <div className="rounded-lg border border-zinc-200 bg-white px-4 py-3 text-[13px] leading-relaxed text-zinc-700">
-          {summary}
+
+      {/* Panel summary */}
+      {panelSummary && (
+        <div className="border-b border-zinc-200 bg-zinc-50 px-3.5 py-3 text-[13px] leading-[1.5] text-zinc-800">
+          {panelSummary}
         </div>
-      ) : (
-        <div className="rounded-lg border border-zinc-200 bg-white px-4 py-3 text-[12px] italic text-zinc-500">
+      )}
+
+      {/* Biomarker list */}
+      {values.length > 0 && (
+        <div>
+          {values.map((v, i) => {
+            const unit = v.unit ?? "";
+            const display =
+              v.value_text != null
+                ? v.value_text
+                : v.value != null
+                  ? String(v.value)
+                  : "—";
+            return (
+              <div
+                key={`${v.test}-${i}`}
+                className={
+                  "grid items-center gap-2 px-3.5 py-2.5 " +
+                  (i < values.length - 1 ? "border-b border-zinc-200" : "")
+                }
+                style={{ gridTemplateColumns: "1fr auto auto" }}
+              >
+                <div className="min-w-0">
+                  <div className="truncate text-[13px] font-medium text-zinc-900">
+                    {v.test}
+                  </div>
+                  {v.reference_range && (
+                    <div className="mt-0.5 font-mono text-[10.5px] text-zinc-500">
+                      ref {v.reference_range}
+                    </div>
+                  )}
+                </div>
+                <div className="text-right font-mono text-[13px] text-zinc-900">
+                  {display}
+                  {unit && (
+                    <span className="ml-0.5 text-zinc-500">{unit}</span>
+                  )}
+                </div>
+                <StatusDot status={v.status} />
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Fall back to LabTable when we have analysis but no values */}
+      {values.length === 0 && analysis && (
+        <div className="px-3.5 py-3">
+          <LabTable analysis={analysis} />
+        </div>
+      )}
+
+      {/* Empty state — neither analysis nor summary */}
+      {!analysis && !panelSummary && (
+        <div className="px-3.5 py-3 text-[12px] italic text-zinc-500">
           The full analysis is no longer attached to this entry.
         </div>
       )}
-      {note && (
-        <div className="rounded-md bg-zinc-50 px-3 py-2 text-[12px] leading-snug text-zinc-600">
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">
-            Note
+
+      {/* Doctor questions */}
+      {doctorQuestions.length > 0 && (
+        <div
+          className="border-t border-zinc-200 px-3.5 py-3"
+          style={{ background: "var(--hc-amber-bg)" }}
+        >
+          <div
+            className="mb-1.5 text-[10.5px] font-semibold uppercase tracking-[0.06em]"
+            style={{ color: "var(--hc-amber-fg)" }}
+          >
+            For your next doctor visit
           </div>
-          <div className="mt-0.5">{note}</div>
+          <ul className="m-0 list-disc pl-4 text-[12.5px] leading-[1.55] text-zinc-900">
+            {doctorQuestions.map((q, i) => (
+              <li key={i}>{q}</li>
+            ))}
+          </ul>
         </div>
       )}
     </div>
@@ -378,7 +511,7 @@ function renderDetail(event: TimelineEvent) {
   const payload = event.payload ?? {};
   switch (event.event_type) {
     case "lab_report":
-      return <LabReportDetail payload={payload} occurredOn={event.occurred_on} />;
+      return <LabExpanded payload={payload} />;
     case "proactive_message":
       return <ProactiveMessageDetail payload={payload} />;
     case "screening_scheduled":
@@ -390,14 +523,20 @@ function renderDetail(event: TimelineEvent) {
   }
 }
 
-/**
- * Events with rich detail (lab_report, proactive_message) deserve the
- * full overlay canvas — an inline accordion cramps them and the lab
- * table overflows the right-column width on the desktop shell. Simpler
- * events keep the inline accordion.
- */
-function usesOverlay(eventType: string): boolean {
-  return eventType === "lab_report" || eventType === "proactive_message";
+// Tiny pill for the rail legend at the top of the timeline.
+function LegendDot({ color, label }: { color: string; label: string }) {
+  return (
+    <div className="inline-flex items-center gap-1.5">
+      <span
+        aria-hidden
+        className="h-[7px] w-[7px] rounded-full"
+        style={{ background: color }}
+      />
+      <span className="text-[10.5px] font-semibold uppercase tracking-[0.06em] text-zinc-500">
+        {label}
+      </span>
+    </div>
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -417,7 +556,7 @@ export function HealthTimeline({
   events,
   recentlyAdded,
   title = "Timeline",
-  subtitle = "Everything your companion remembers.",
+  subtitle = "Everything I remember",
   embedded = false,
 }: Props) {
   // Newest first — flip the comparator so the most recent entry sits on top.
@@ -431,18 +570,18 @@ export function HealthTimeline({
   }, [events]);
 
   // Single-open accordion: track the key of the currently expanded row, or
-  // null when everything is collapsed.
+  // null when everything is collapsed. Both lab_report and
+  // proactive_message expand inline now — no DetailOverlay.
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
-  // Overlay state for rich-detail entries.
-  const [overlayKey, setOverlayKey] = useState<string | null>(null);
-
-  const overlayEvent = useMemo(
-    () => (overlayKey ? sorted.find((e) => eventKey(e) === overlayKey) ?? null : null),
-    [overlayKey, sorted]
-  );
 
   const body = (
     <div className="px-5 py-4">
+      {/* Rail legend — three source-semantic dot chips */}
+      <div className="mb-3 flex flex-wrap gap-2.5 pl-1">
+        <LegendDot color="var(--hc-accent-600)" label="Companion" />
+        <LegendDot color="#2563eb" label="Lab" />
+        <LegendDot color="#d97706" label="You said" />
+      </div>
       {sorted.length === 0 ? (
         <p className="text-xs text-zinc-400">
           Nothing here yet. Your story will build as you talk.
@@ -461,15 +600,10 @@ export function HealthTimeline({
             const expanded = expandedKey === key;
             const summary = summarizePayload(e.event_type, e.payload ?? {});
             const detailId = `timeline-detail-${key.replace(/[^a-zA-Z0-9_-]/g, "_")}`;
-            const richDetail = usesOverlay(e.event_type);
             const dot = dotClasses(e);
 
             const onRowClick = () => {
-              if (richDetail) {
-                setOverlayKey(key);
-              } else {
-                setExpandedKey((cur) => (cur === key ? null : key));
-              }
+              setExpandedKey((cur) => (cur === key ? null : key));
             };
 
             return (
@@ -494,9 +628,8 @@ export function HealthTimeline({
                   <button
                     type="button"
                     onClick={onRowClick}
-                    aria-expanded={richDetail ? undefined : expanded}
-                    aria-controls={richDetail ? undefined : detailId}
-                    aria-haspopup={richDetail ? "dialog" : undefined}
+                    aria-expanded={expanded}
+                    aria-controls={detailId}
                     className="flex w-full items-start gap-2 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 focus-visible:ring-offset-1"
                   >
                     <svg
@@ -505,7 +638,7 @@ export function HealthTimeline({
                       fill="currentColor"
                       className={
                         "mt-[5px] h-3 w-3 shrink-0 text-zinc-400 transition-transform " +
-                        (!richDetail && expanded ? "rotate-90" : "rotate-0")
+                        (expanded ? "rotate-90" : "rotate-0")
                       }
                     >
                       <path
@@ -535,7 +668,7 @@ export function HealthTimeline({
                       )}
                     </div>
                   </button>
-                  {!richDetail && expanded && (
+                  {expanded && (
                     <div
                       id={detailId}
                       className="border-t border-zinc-200 px-3 py-3 pl-6 sm:pl-7"
@@ -552,45 +685,21 @@ export function HealthTimeline({
     </div>
   );
 
-  const overlay = (
-    <DetailOverlay
-      open={overlayEvent !== null}
-      onClose={() => setOverlayKey(null)}
-      title={
-        overlayEvent
-          ? `${styleFor(overlayEvent.event_type).label} · ${formatOccurredOn(
-              overlayEvent.occurred_on
-            )}`
-          : undefined
-      }
-    >
-      {overlayEvent ? renderDetail(overlayEvent) : null}
-    </DetailOverlay>
-  );
-
   if (embedded) {
-    return (
-      <>
-        {body}
-        {overlay}
-      </>
-    );
+    return body;
   }
 
   return (
-    <>
-      <div className="flex flex-col rounded-xl border border-zinc-200 bg-white shadow-sm">
-        <div className="border-b border-zinc-200 px-5 py-4">
-          <div className="flex items-center gap-2">
-            <Clock className="h-4 w-4 text-zinc-500" aria-hidden />
-            <h2 className="text-sm font-semibold">{title}</h2>
-          </div>
-          <p className="mt-0.5 text-xs text-zinc-500">{subtitle}</p>
+    <div className="flex flex-col rounded-xl border border-zinc-200 bg-white shadow-sm">
+      <div className="border-b border-zinc-200 px-5 py-4">
+        <div className="flex items-center gap-2">
+          <Clock className="h-4 w-4 text-zinc-500" aria-hidden />
+          <h2 className="text-sm font-semibold">{title}</h2>
         </div>
-        {body}
+        <p className="mt-0.5 text-xs text-zinc-500">{subtitle}</p>
       </div>
-      {overlay}
-    </>
+      {body}
+    </div>
   );
 }
 
