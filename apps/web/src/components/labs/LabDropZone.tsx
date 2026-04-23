@@ -122,6 +122,12 @@ export function LabDropZone({
         onError?.(msg);
       } finally {
         setBusy(false);
+        // Clear the <input type="file"> so the same file can be picked
+        // again. Without this the `change` event never fires on a
+        // second pick of the same filename.
+        if (inputRef.current) {
+          inputRef.current.value = "";
+        }
         onDone?.();
       }
     },

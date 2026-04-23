@@ -2,9 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Clock, ShieldCheck, Sparkles, User } from "lucide-react";
 
 import { useAuth } from "@/lib/auth-context";
 import { getAccessToken } from "@/lib/supabase";
+import { EmergencyPill } from "@/components/common/EmergencyPill";
 import { LabDropZone } from "@/components/labs/LabDropZone";
 import { LabTable } from "@/components/labs/LabTable";
 import { MonthsLaterFade } from "@/components/proactive/MonthsLaterFade";
@@ -16,6 +19,23 @@ import type {
   ProactiveMessage,
   TimelineEvent,
 } from "@/components/shared/types";
+
+// First sentence of the reasoning — the layer the development journal
+// calls "a one-line why for everyone". Strips markdown-flavored prefixes
+// and caps length so the tag never dominates the bubble.
+function firstReasoningLine(reasoning: string | undefined | null): string {
+  if (!reasoning) return "";
+  const trimmed = reasoning.trim();
+  if (!trimmed) return "";
+  // Strip a leading markdown heading / list marker so the tag reads as prose.
+  const cleaned = trimmed.replace(/^([#>*\-]+\s*)+/, "");
+  const m = cleaned.split(/\.\s/);
+  const first = (m[0] || cleaned).trim();
+  if (first.length <= 140) {
+    return first.endsWith(".") ? first : first + ".";
+  }
+  return first.slice(0, 120).trimEnd() + "…";
+}
 
 type ChatMessage = {
   role: "user" | "assistant" | "proactive" | "system";
@@ -148,8 +168,12 @@ function ScreeningCalendar({
   return (
     <div className="flex flex-col rounded-xl border border-zinc-200 bg-white shadow-sm">
       <div className="border-b border-zinc-200 px-5 py-4">
-        <h2 className="text-sm font-semibold">Screenings</h2>
-        <p className="text-xs text-zinc-500">
+        <div className="flex items-center gap-2">
+          <ShieldCheck className="h-4 w-4 text-emerald-600" aria-hidden />
+          <h2 className="text-sm font-semibold">Recommended screenings</h2>
+        </div>
+        <p className="mt-0.5 text-xs text-zinc-500">Talk to your doctor about them.</p>
+        <p className="mt-0.5 text-[11px] text-zinc-400">
           Preventive checks your companion is tracking.
         </p>
       </div>
@@ -822,7 +846,7 @@ function ChatExperience() {
       <header className="shrink-0 border-b border-zinc-200 bg-white">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 md:px-6 md:py-4">
           <div className="min-w-0">
-            <h1 className="truncate text-base font-semibold tracking-tight md:text-lg">
+            <h1 className="truncate text-lg font-semibold tracking-tight md:text-xl">
               Health Companion
             </h1>
             <p className="hidden text-xs text-zinc-500 sm:block">
@@ -857,6 +881,18 @@ function ChatExperience() {
               <span className="hidden sm:inline">Simulate: 3 months later</span>
               <span className="sm:hidden">+3 months</span>
             </button>
+            <Link
+              href="/how-this-works"
+              className="hidden text-xs text-zinc-500 hover:text-zinc-900 md:inline"
+            >
+              How this works
+            </Link>
+            <Link
+              href="/privacy"
+              className="hidden text-xs text-zinc-500 hover:text-zinc-900 md:inline"
+            >
+              Your privacy
+            </Link>
             {user?.email && (
               <span
                 className="hidden max-w-[180px] truncate text-xs text-zinc-500 md:inline"
@@ -882,7 +918,7 @@ function ChatExperience() {
         <section className="flex min-h-0 flex-1 flex-col rounded-xl border border-zinc-200 bg-white shadow-sm md:h-[calc(100vh-160px)]">
           <div
             ref={transcriptRef}
-            className="flex-1 space-y-4 overflow-y-auto px-4 py-4 md:px-6 md:py-5"
+            className="flex-1 space-y-5 overflow-y-auto px-4 py-4 md:px-6 md:py-5"
           >
             {messages.length === 0 && (
               <div className="rounded-lg bg-zinc-50 px-4 py-6 text-sm text-zinc-500">
@@ -900,10 +936,22 @@ function ChatExperience() {
               const isReasoningActive = reasoningActiveIndex === i;
               const isExpanded = expandedReasoning.has(i);
 
+              const whyLine =
+                (m.role === "assistant" || m.role === "proactive") &&
+                m.reasoning
+                  ? firstReasoningLine(m.reasoning)
+                  : "";
+
               // Proactive message bubble: dedicated card, full width.
               if (m.role === "proactive") {
                 return (
                   <div key={i} className="mr-auto flex w-full flex-col items-start">
+                    {whyLine && (
+                      <div className="mb-1 inline-flex items-center gap-1 text-[11px] italic text-zinc-500">
+                        <Sparkles className="h-3 w-3 text-amber-500" aria-hidden />
+                        <span>{whyLine}</span>
+                      </div>
+                    )}
                     {m.proactive ? (
                       <ProactiveMessageCard message={m.proactive} />
                     ) : (
@@ -968,6 +1016,12 @@ function ChatExperience() {
                       : "mr-auto flex w-full flex-col items-start"
                   }
                 >
+                  {m.role === "assistant" && whyLine && (
+                    <div className="mb-1 inline-flex items-center gap-1 text-[11px] italic text-zinc-500">
+                      <Sparkles className="h-3 w-3 text-zinc-400" aria-hidden />
+                      <span>{whyLine}</span>
+                    </div>
+                  )}
                   <div
                     className={
                       m.role === "user"
@@ -976,6 +1030,7 @@ function ChatExperience() {
                     }
                   >
                     {m.content ||
+                      m.labAnalysis?.panel_summary ||
                       (m.role === "assistant" && busy && !hasReasoning ? (
                         <span className="inline-flex items-center gap-1 text-zinc-400">
                           <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-zinc-400" />
@@ -1056,7 +1111,7 @@ function ChatExperience() {
               onClick={() => setSheet("screenings")}
               className="flex min-h-[44px] shrink-0 items-center justify-center gap-2 rounded-full border border-zinc-200 bg-zinc-50 px-3 text-sm font-medium text-zinc-700 active:bg-zinc-100"
             >
-              <span>Screenings</span>
+              <span>Recommended screenings</span>
               <span className="rounded-full bg-zinc-200 px-2 py-0.5 text-[11px] font-semibold text-zinc-700">
                 {screeningCount}
               </span>
@@ -1071,6 +1126,7 @@ function ChatExperience() {
                 {timelineCount}
               </span>
             </button>
+            <EmergencyPill variant="inline" />
             <button
               type="button"
               onClick={() => setSheet((s) => (s === "upload" ? null : "upload"))}
@@ -1114,14 +1170,14 @@ function ChatExperience() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Tell me about yourself..."
-              className="min-h-[44px] flex-1 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-base outline-none transition focus:border-zinc-400 md:text-sm"
+              className="min-h-[44px] flex-1 rounded-full border border-zinc-200 bg-white px-4 py-2 text-base outline-none transition focus:border-zinc-400 focus:ring-2 focus:ring-zinc-200 md:text-sm"
               disabled={busy}
               autoFocus
             />
             <button
               type="submit"
               disabled={busy || !input.trim()}
-              className="min-h-[44px] min-w-[64px] rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:bg-zinc-300"
+              className="min-h-[44px] min-w-[64px] rounded-full bg-zinc-900 px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-800 disabled:cursor-not-allowed disabled:bg-zinc-300"
             >
               {busy ? "…" : "Send"}
             </button>
@@ -1132,8 +1188,11 @@ function ChatExperience() {
         <aside className="hidden md:flex md:h-[calc(100vh-160px)] md:flex-col md:gap-4 md:overflow-y-auto">
           <div className="flex flex-col rounded-xl border border-zinc-200 bg-white shadow-sm">
             <div className="border-b border-zinc-200 px-5 py-4">
-              <h2 className="text-sm font-semibold">Your profile</h2>
-              <p className="text-xs text-zinc-500">
+              <div className="flex items-center gap-2">
+                <User className="h-4 w-4 text-zinc-500" aria-hidden />
+                <h2 className="text-sm font-semibold">Your profile</h2>
+              </div>
+              <p className="mt-0.5 text-xs text-zinc-500">
                 Fills in as we talk. Powered by visible tool use.
               </p>
             </div>
@@ -1171,8 +1230,8 @@ function ChatExperience() {
       <BottomSheet
         open={sheet === "screenings"}
         onClose={() => setSheet(null)}
-        title="Screenings"
-        subtitle="Preventive checks your companion is tracking."
+        title="Recommended screenings"
+        subtitle="Talk to your doctor about them."
       >
         <div className="px-5 py-4">
           {screenings.length === 0 ? (
@@ -1238,6 +1297,10 @@ function ChatExperience() {
         onMidpoint={onFadeMidpoint}
         onComplete={onFadeComplete}
       />
+
+      {/* Emergency affordance — floating bottom-left on desktop. Mobile copy
+          lives inline in the pills row above the composer. */}
+      <EmergencyPill variant="floating" />
     </div>
   );
 }

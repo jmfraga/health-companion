@@ -1,7 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { Clock } from "lucide-react";
 
+import { DetailOverlay } from "@/components/common/DetailOverlay";
 import { LabTable } from "@/components/labs/LabTable";
 import { ProactiveMessageCard } from "@/components/proactive/ProactiveMessageCard";
 import type {
@@ -16,31 +18,23 @@ import type {
 
 const EVENT_STYLES: Record<
   string,
-  { label: string; dot: string; ring: string; chip: string }
+  { label: string; chip: string }
 > = {
   onboarding: {
     label: "Onboarding",
-    dot: "bg-zinc-400",
-    ring: "ring-zinc-200",
-    chip: "bg-zinc-100 text-zinc-700",
+    chip: "bg-amber-50 text-amber-800",
   },
   screening_scheduled: {
     label: "Screening scheduled",
-    dot: "bg-emerald-500",
-    ring: "ring-emerald-200",
     chip: "bg-emerald-50 text-emerald-700",
   },
   lab_report: {
     label: "Lab report",
-    dot: "bg-blue-500",
-    ring: "ring-blue-200",
     chip: "bg-blue-50 text-blue-700",
   },
   proactive_message: {
     label: "Proactive check-in",
-    dot: "bg-amber-500",
-    ring: "ring-amber-200",
-    chip: "bg-amber-50 text-amber-800",
+    chip: "bg-emerald-50 text-emerald-700",
   },
 };
 
@@ -48,11 +42,58 @@ function styleFor(eventType: string) {
   return (
     EVENT_STYLES[eventType] ?? {
       label: humanize(eventType),
-      dot: "bg-zinc-400",
-      ring: "ring-zinc-200",
       chip: "bg-zinc-100 text-zinc-700",
     }
   );
+}
+
+// ---------------------------------------------------------------------------
+// Source-semantic dot classes
+//
+// blue    → sensor / lab / wearable (objective data)
+// emerald → companion-generated (screening, proactive)
+// amber   → chat-reported (user said)
+// zinc    → unknown
+// Future-dated entries get an outlined dot regardless of source.
+// ---------------------------------------------------------------------------
+
+function todayYmd(): string {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function dotClasses(event: TimelineEvent): string {
+  const payload = (event.payload ?? {}) as Record<string, unknown>;
+  const source =
+    typeof payload.source === "string" ? (payload.source as string) : null;
+
+  // Future-dated entries: outlined.
+  if (event.occurred_on && event.occurred_on > todayYmd()) {
+    return "border-2 border-zinc-300 bg-white";
+  }
+
+  // Source overrides event type when present.
+  if (source === "lab_report" || source === "wearable") {
+    return "bg-blue-500";
+  }
+  if (source === "user_said") {
+    return "bg-amber-500";
+  }
+
+  switch (event.event_type) {
+    case "lab_report":
+      return "bg-blue-500";
+    case "proactive_message":
+    case "screening_scheduled":
+      return "bg-emerald-500";
+    case "onboarding":
+      return "bg-amber-500";
+    default:
+      return "bg-zinc-400";
+  }
 }
 
 function humanize(s: string): string {
@@ -349,6 +390,16 @@ function renderDetail(event: TimelineEvent) {
   }
 }
 
+/**
+ * Events with rich detail (lab_report, proactive_message) deserve the
+ * full overlay canvas — an inline accordion cramps them and the lab
+ * table overflows the right-column width on the desktop shell. Simpler
+ * events keep the inline accordion.
+ */
+function usesOverlay(eventType: string): boolean {
+  return eventType === "lab_report" || eventType === "proactive_message";
+}
+
 // ---------------------------------------------------------------------------
 // HealthTimeline
 // ---------------------------------------------------------------------------
@@ -380,9 +431,15 @@ export function HealthTimeline({
   }, [events]);
 
   // Single-open accordion: track the key of the currently expanded row, or
-  // null when everything is collapsed. One-at-a-time keeps scroll disciplined
-  // on mobile and on the desktop side column.
+  // null when everything is collapsed.
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
+  // Overlay state for rich-detail entries.
+  const [overlayKey, setOverlayKey] = useState<string | null>(null);
+
+  const overlayEvent = useMemo(
+    () => (overlayKey ? sorted.find((e) => eventKey(e) === overlayKey) ?? null : null),
+    [overlayKey, sorted]
+  );
 
   const body = (
     <div className="px-5 py-4">
@@ -404,6 +461,16 @@ export function HealthTimeline({
             const expanded = expandedKey === key;
             const summary = summarizePayload(e.event_type, e.payload ?? {});
             const detailId = `timeline-detail-${key.replace(/[^a-zA-Z0-9_-]/g, "_")}`;
+            const richDetail = usesOverlay(e.event_type);
+            const dot = dotClasses(e);
+
+            const onRowClick = () => {
+              if (richDetail) {
+                setOverlayKey(key);
+              } else {
+                setExpandedKey((cur) => (cur === key ? null : key));
+              }
+            };
 
             return (
               <li key={key} className="relative">
@@ -411,7 +478,7 @@ export function HealthTimeline({
                   aria-hidden
                   className={
                     "absolute -left-[13px] top-3 h-3 w-3 rounded-full ring-2 ring-white " +
-                    s.dot
+                    dot
                   }
                 />
                 <div
@@ -426,11 +493,10 @@ export function HealthTimeline({
                 >
                   <button
                     type="button"
-                    onClick={() =>
-                      setExpandedKey((cur) => (cur === key ? null : key))
-                    }
-                    aria-expanded={expanded}
-                    aria-controls={detailId}
+                    onClick={onRowClick}
+                    aria-expanded={richDetail ? undefined : expanded}
+                    aria-controls={richDetail ? undefined : detailId}
+                    aria-haspopup={richDetail ? "dialog" : undefined}
                     className="flex w-full items-start gap-2 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 focus-visible:ring-offset-1"
                   >
                     <svg
@@ -439,7 +505,7 @@ export function HealthTimeline({
                       fill="currentColor"
                       className={
                         "mt-[5px] h-3 w-3 shrink-0 text-zinc-400 transition-transform " +
-                        (expanded ? "rotate-90" : "rotate-0")
+                        (!richDetail && expanded ? "rotate-90" : "rotate-0")
                       }
                     >
                       <path
@@ -469,7 +535,7 @@ export function HealthTimeline({
                       )}
                     </div>
                   </button>
-                  {expanded && (
+                  {!richDetail && expanded && (
                     <div
                       id={detailId}
                       className="border-t border-zinc-200 px-3 py-3 pl-6 sm:pl-7"
@@ -486,16 +552,45 @@ export function HealthTimeline({
     </div>
   );
 
-  if (embedded) return body;
+  const overlay = (
+    <DetailOverlay
+      open={overlayEvent !== null}
+      onClose={() => setOverlayKey(null)}
+      title={
+        overlayEvent
+          ? `${styleFor(overlayEvent.event_type).label} · ${formatOccurredOn(
+              overlayEvent.occurred_on
+            )}`
+          : undefined
+      }
+    >
+      {overlayEvent ? renderDetail(overlayEvent) : null}
+    </DetailOverlay>
+  );
+
+  if (embedded) {
+    return (
+      <>
+        {body}
+        {overlay}
+      </>
+    );
+  }
 
   return (
-    <div className="flex flex-col rounded-xl border border-zinc-200 bg-white shadow-sm">
-      <div className="border-b border-zinc-200 px-5 py-4">
-        <h2 className="text-sm font-semibold">{title}</h2>
-        <p className="text-xs text-zinc-500">{subtitle}</p>
+    <>
+      <div className="flex flex-col rounded-xl border border-zinc-200 bg-white shadow-sm">
+        <div className="border-b border-zinc-200 px-5 py-4">
+          <div className="flex items-center gap-2">
+            <Clock className="h-4 w-4 text-zinc-500" aria-hidden />
+            <h2 className="text-sm font-semibold">{title}</h2>
+          </div>
+          <p className="mt-0.5 text-xs text-zinc-500">{subtitle}</p>
+        </div>
+        {body}
       </div>
-      {body}
-    </div>
+      {overlay}
+    </>
   );
 }
 

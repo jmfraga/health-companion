@@ -101,7 +101,7 @@ If Health Companion is going to sit between a user and their doctor, we owe it t
 
 ### 11. Equity & reach
 The product works in both high- and low-resource contexts. In low-resource contexts — LatAm, the Global South — the relative value is higher because it fills a real gap. This is a first-class design concern:
-- Multilingual from early on (Spanish + English initially; progressively more).
+- Multilingual from early on (Spanish + English initially; progressively more). **Default language follows the device** (`navigator.language` in the browser, OS locale on native wrappers). Only override on explicit user request — mid-conversation in natural language ("tell me in Spanish") or via a Settings toggle that persists to `preferences.language` on the canonical profile. Forcing a language against the device locale is a product anti-pattern.
 - Low-bandwidth and offline-capable modes.
 - Pricing tiers that remain accessible.
 - Content grounded in local health systems (Secretaría de Salud México, MINSA, etc.) alongside USPSTF/ACS/NICE.
@@ -120,6 +120,7 @@ The document is organized as **four complementary timelines**, not one:
 | **Next Steps / Commitments** | Future | Appointments, pending studies, medication refills, follow-up calls, clarifying questions to bring to the next visit. With reminders and active verification that commitments were kept. Phase 1. |
 | **Screenings** | Future (preventive) | A specialized subset of Next Steps — preventive checkups driven by age, sex, family history, local-guideline cadence. Carries guideline source and rationale per card (Phase 0 for the list; rationale tag Phase 1). |
 | **Habits** | Recurring | Behavioral commitments with daily or weekly tracking — hydration, sleep, walking, days without tobacco, medication adherence, mood check-in. Includes proxy indicators per condition (the "handshake 0–10" pattern scaled). Phase 1+. |
+| **Vaccines** | Past + future | A dedicated section for immunizations: received history (name + date, manually entered or parsed from a consult summary) plus recommended vaccines by age / region / condition (influenza, pneumococcus, shingles, HPV catch-up, Tdap booster, COVID updates, Hep B when indicated — cited CDC ACIP / SSA México). Hideable from Settings for users who prefer not to engage; we respect the choice without editorializing. Phase 1. |
 
 Each layer has its own rhythm and UX, but they share the same underlying store — one state, four ways in. The `/api/chat` orchestrator reads from all four via the live-state-snapshot layer (see §17 below) so the companion's memory is genuinely cross-cutting, not per-endpoint.
 
@@ -189,6 +190,10 @@ Harden the core, onboard the first 50–200 users, learn.
 - **Closed beta onboarding**: invite-only, feedback loop wired into weekly product reviews.
 - **Privacy + explicability surfaces deepen**: become living documents — update cadence, audit log of clinical-content changes, explicit consent for any new data category.
 - **Admin-lite**: single-operator dashboard over Supabase — user health, event log, clinical-quality spot-check queue, cost per user. Internal only, not public.
+- **Screening cards grow a commitment affordance**: next to each recommended screening, a small "Set a date" control lets the user commit a calendar date, and the companion asks if they want a reminder. A yes persists the reminder against `reminders` and surfaces it in the Next Steps layer; a no leaves the card informational. This is the behavioral-follow-through thread (§14) landing at the screening card.
+- **Vaccines section ships as a first-class layer**: past (logged immunizations with name + date) and future (recommended vaccines per age / region / condition, cited CDC ACIP / SSA México). Hideable from Settings for users who prefer not to engage.
+- **Settings surface lands** with: language override (persists `preferences.language`), section-hide toggles (Vaccines and others), reasoning-visibility toggle (§6 opt-in for "See reasoning"), privacy export / delete, profile photo upload.
+- **Language follows the device**: default from `navigator.language`; override lives in profile preferences; the chat honors mid-conversation switches through the orchestrator prompt.
 
 ### Phase 2 · Public launch (Q4 2026)
 

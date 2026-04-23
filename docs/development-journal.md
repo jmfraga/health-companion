@@ -515,6 +515,38 @@ This is **not** a UI segmentation exercise. It is the frame that makes the *livi
 - **Next Steps / Commitments section** — articulated in ROADMAP capability thread, not built Phase 0.
 - **Habits tracking with proxy indicators** — articulated in ROADMAP as own thread, not built Phase 0.
 
+### Language follows the device, not the configuration
+
+Juan Manuel's observation during the live test:
+
+> *"La app debe tomar el idioma del dispositivo en que se está corriendo y usar ese por default, y solo cambiarlo a otro idioma si en el chat o interactuando el paciente lo solicita."*
+
+This is the correct default. Forcing the demo into English during the hackathon is a local decision for pitch purposes; the product itself should read `navigator.language` (or the OS locale on a native wrapper) and start there. The orchestrator's system prompt already says "match the user's language" — the missing piece is that the UI shell (chat placeholder, labels, pills, settings text) should also localize.
+
+Implementation path:
+- **Phase 0 (hackathon)**: keep the demo in English for judging; no code change tonight.
+- **Phase 1**: read `navigator.language` on first load, route strings through a thin i18n layer (Spanish + English at launch, both first-class), and only override when the user explicitly asks *"tell me in Spanish / in English"* in conversation. The orchestrator already honors mid-conversation switches via the clinical system prompt; the surrounding UI needs to match.
+- The user's **preferred language** lives in the canonical profile (`preferences.language`) — once explicitly changed, persist and keep it across sessions regardless of device locale.
+
+Added as an ROADMAP capability clarification under the equity / reach thread.
+
+### UX copy pass — Screenings section renamed + commitment/vaccines ideas
+
+Juan Manuel, while interacting: likes the flow, but the screening section copy is thin. Three concrete signals:
+
+1. **Screenings label** — promote "Recommended screenings" as the primary label with a secondary line "Talk to your doctor about them" and the existing "Preventive checks your companion is tracking" demoted to tertiary text. Landed this session (desktop aside, mobile pill, bottom sheet title).
+
+2. **Commitment date button per screening card** — next to each screening, a small affordance: *"Set a date"* → user picks a calendar date → companion asks *"Want a reminder?"* (Y/N) → reminder is persisted. This is the Next Steps / Commitments layer made visible at the screening card. Phase 1 (tied to the Next Steps thread).
+
+3. **Vaccines section** — a new first-class section alongside Screenings. Two views:
+   - **Immunization history**: user logs received vaccines with name + date. Reusable from parsed lab/consultation summaries too.
+   - **Recommended vaccines**: surfaced per age / region / condition (influenza annually, pneumococcus at 65, shingles at 50, HPV catch-up in adults 27–45 with shared decision, COVID updates, Tdap booster every 10 years, Hep B if exposed). Cited against CDC ACIP / SSA México.
+   Sits cleanly between past (timeline) and future (next steps) since immunizations have both dimensions. Becomes the fifth named layer of the living state document.
+
+4. **Settings: hide sections** — the user should be able to hide sections they don't want in their surface. Vaccines is the tempting case (for users who won't engage with them). Juan Manuel's position is noted and sharp: *"si es sensata y quiere cuidar su salud, no lo hará"* — but the freedom to hide exists regardless of our opinion, and respecting it is the product's moral commitment ("your data, your choices"). Settings toggles land in Phase 1 alongside privacy surface, explicability surface, and language override.
+
+All three Phase-1 items captured in the ROADMAP as additions to the Next Steps / Screenings / Vaccines threads plus the Settings surface.
+
 ### The re-upload bug Juan Manuel noticed
 
 Juan Manuel tried to upload the same lab PDF a second time after the first 400 bug and the drop zone would not respond. Likely the browser `<input type="file">` does not fire `change` when the selected filename matches the prior one. Quick fix when we revisit the drop zone: clear `inputRef.current.value = ""` after each upload attempt so the same file can be picked again. Captured here; will apply when we next touch `LabDropZone`.

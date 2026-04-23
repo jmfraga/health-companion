@@ -143,6 +143,14 @@ const SEVERITY_STYLES: Record<
 
 export function LabTable({ analysis }: { analysis: LabAnalysis }) {
   const drawnOn = formatDrawnOn(analysis.drawn_on);
+  // Defensive: older or partial analyses may not carry every array. Normalize
+  // so every array is iterable and counts render as 0 rather than crashing.
+  const values = Array.isArray(analysis.values) ? analysis.values : [];
+  const flags = Array.isArray(analysis.flags) ? analysis.flags : [];
+  const trends = Array.isArray(analysis.trends) ? analysis.trends : [];
+  const doctorQuestions = Array.isArray(analysis.doctor_questions)
+    ? analysis.doctor_questions
+    : [];
 
   return (
     <div className="flex w-full flex-col rounded-xl border border-zinc-200 bg-white shadow-sm">
@@ -156,7 +164,7 @@ export function LabTable({ analysis }: { analysis: LabAnalysis }) {
           )}
         </div>
         <span className="text-[11px] uppercase tracking-wider text-zinc-400">
-          {analysis.values.length} value{analysis.values.length === 1 ? "" : "s"}
+          {values.length} value{values.length === 1 ? "" : "s"}
         </span>
       </header>
 
@@ -172,7 +180,7 @@ export function LabTable({ analysis }: { analysis: LabAnalysis }) {
             </tr>
           </thead>
           <tbody>
-            {analysis.values.map((v, i) => {
+            {values.map((v, i) => {
               const s = STATUS_STYLES[v.status] ?? STATUS_STYLES.ok;
               return (
                 <tr
@@ -210,7 +218,7 @@ export function LabTable({ analysis }: { analysis: LabAnalysis }) {
 
       {/* Stacked cards — mobile */}
       <div className="space-y-2 px-4 py-3 md:hidden">
-        {analysis.values.map((v, i) => {
+        {values.map((v, i) => {
           const s = STATUS_STYLES[v.status] ?? STATUS_STYLES.ok;
           return (
             <div
@@ -261,13 +269,13 @@ export function LabTable({ analysis }: { analysis: LabAnalysis }) {
       )}
 
       {/* Flags */}
-      {analysis.flags && analysis.flags.length > 0 && (
+      {flags.length > 0 && (
         <div className="border-t border-zinc-100 px-5 py-4">
           <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
             Flags
           </div>
           <div className="mt-2 space-y-2">
-            {analysis.flags.map((f, i) => {
+            {flags.map((f, i) => {
               const sev = SEVERITY_STYLES[f.severity] ?? SEVERITY_STYLES.info;
               return (
                 <div
@@ -298,13 +306,13 @@ export function LabTable({ analysis }: { analysis: LabAnalysis }) {
       )}
 
       {/* Trends */}
-      {analysis.trends && analysis.trends.length > 0 && (
+      {trends.length > 0 && (
         <div className="border-t border-zinc-100 px-5 py-4">
           <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
             Trends
           </div>
           <div className="mt-2 space-y-2">
-            {analysis.trends.map((t, i) => (
+            {trends.map((t, i) => (
               <div
                 key={i}
                 className="rounded-md bg-zinc-50 px-3 py-2 text-[13px] text-zinc-700"
@@ -323,13 +331,13 @@ export function LabTable({ analysis }: { analysis: LabAnalysis }) {
       )}
 
       {/* Doctor questions */}
-      {analysis.doctor_questions && analysis.doctor_questions.length > 0 && (
+      {doctorQuestions.length > 0 && (
         <div className="border-t border-zinc-100 px-5 py-4">
           <div className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
             Questions for your doctor
           </div>
           <ul className="mt-2 list-disc space-y-1 pl-5 text-[13px] text-zinc-700">
-            {analysis.doctor_questions.map((q, i) => (
+            {doctorQuestions.map((q, i) => (
               <li key={i}>{q}</li>
             ))}
           </ul>
