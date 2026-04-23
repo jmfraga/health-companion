@@ -20,9 +20,11 @@ The full product vision covers five health pillars (prevention, body, mind, risk
 
 ## Three users, one product
 
+![Health Companion — three users, one product: a person starting to care for themselves, a conscious self-monitor, and a clinician on the far side of a bridge connecting to their patients](./docs/assets/three-users-nanobanana.png)
+
 > *The health system gets paid when you get sick. We get paid to keep you well.*
 
-One surface, two adoption paths for patients, one view for their clinician.
+One surface, two adoption paths for patients, one view for their clinician. The clinician-side surface — **The Bridge** — is white-label: every clinic brands their own, same companion underneath.
 
 | | 01 · People who want to start caring | 02 · People who already care, and want to keep going | 03 · Doctors whose daily work becomes keeping people well |
 |---|---|---|---|
