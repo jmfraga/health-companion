@@ -208,6 +208,7 @@ Product is real, in users' pockets, earning trust.
 - **Insurance integration**: parse user's policy PDF, answer "does my policy cover X?" in plain English, renewal alerts.
 - **Multilingual**: Spanish (Mexican register) + English, both first-class; UI strings + prompt layers fully localized.
 - **Admin dashboard v1 — ops + product analytics**: a proper internal dashboard for the operator. Two axes: (1) **usage analytics** — DAU / MAU, retention curves, funnel by pillar, cost per user per month, tool-use mix, extended-thinking effort distribution. (2) **clinical / outcome signals** — screenings scheduled vs completed, follow-up visits kept, proactive messages sent vs acted-on, self-reported subjective improvements, satisfaction signals, adverse events. These signals are the raw material for the research-responsibility story: we measure whether we help, and we say so.
+- **The Bridge — clinician surface of Health Companion**: the same product gains a second surface for the patient's treating clinician. A dashboard with a row per enrolled patient: current goals, biomarker trends, adherence signals, and alerts when values trend out of range. The clinician can schedule a call, co-set goals with the patient inside the thread, prescribe screenings (which flow into the patient's Next Steps), and write medical notes that the patient reads in their own timeline with the companion's calibrated voice translating any jargon. The patient-facing product stays strictly wellness; the clinician-facing product is a clinical-workflow adjunct used by a licensed professional. Regulatory posture stays clean. **This is the business-model answer**: B2B2C through clinicians (their patients subscribe via the practice), B2C freemium for users without a participating clinician, B2B insurer partnerships in Phase 3 as the scale multiplier. Pitch line: *"One product, two surfaces. A warm companion in the patient's pocket, a structured record on the clinician's desk. The companion does the between-visits work the clinician cannot. The clinician does the in-visit work the companion must not."* Replaces the "MedAssistant sister product" that formerly lived in Phase 4.
 
 ### Phase 3 · Scale in LatAm (2027)
 
@@ -223,13 +224,13 @@ The equity dimension becomes the growth engine.
 
 ### Phase 4 · Ecosystem (2028+)
 
-Health Companion is the patient-side half of a two-sided product.
+Health Companion is a two-surface product at scale. The Bridge has been running for 18 months; the ecosystem grows around it.
 
-- **MedAssistant (sister product)**: for doctors. Complements Health Companion by receiving the patient-side structured summary at visit time and feeding back what was said. Closes the loop that currently makes the patient the involuntary messenger.
-- **Employer channel**: corporate wellness benefit, aggregated-but-private insights to HR.
-- **Research partnerships**: anonymized, consented cohort data for public-health research in underserved regions.
-- **Pillar coverage**: open pillar 6 (health finance) fully — policy comparison, HSA/FSA guidance, medical debt education.
-- **Cross-provider integration**: FHIR-based exchange with EMRs where jurisdictional rules allow.
+- **Employer channel**: corporate wellness benefit, aggregated-but-private insights to HR, optional company-paid clinician access for employees who don't have a primary-care relationship.
+- **Research partnerships**: anonymized, consented cohort data for public-health research in underserved regions. Clinician-authored outcome studies published from the live practice data.
+- **Pillar coverage**: open pillar 6 (health finance) fully — policy comparison, HSA/FSA guidance, medical debt education, auto-detect covered preventive care from the user's insurance policy.
+- **Cross-provider integration**: FHIR-based exchange with EMRs where jurisdictional rules allow. Hospital systems can onboard their entire primary-care panel.
+- **Group and family modes**: the Bridge extends to pediatricians, geriatricians, OB/GYN continuity-of-care — the same companion+clinician pattern applied to every longitudinal specialty.
 
 ---
 

@@ -547,6 +547,40 @@ Juan Manuel, while interacting: likes the flow, but the screening section copy i
 
 All three Phase-1 items captured in the ROADMAP as additions to the Next Steps / Screenings / Vaccines threads plus the Settings surface.
 
+### The Bridge — Health Companion as a clinician-patient connective layer (Apr 23)
+
+Juan Manuel, walking out the door to work, dropped a pitch-scale idea:
+
+> *"Qué tal una versión de Health Companion como 'puente' entre el profesional de la salud y sus pacientes. Sus pacientes se registran y pagan la suscripción y el profesional tiene un tablero donde mira las metas de cada paciente y tiene llamadas o citas con ellos si algo sale de rango, establece nuevas metas con ellos, los orienta, les da las prescripciones para los checkups, alimenta desde su lado con notas médicas disponibles para el paciente."*
+
+This is not a side feature. It is the shape of the sustainable business model and it closes the loop Hans drew around the product's value:
+
+> *"The value is not in simulating the doctor — it is in being the structured memory and reasoning the doctor doesn't have time to maintain."*
+
+**The bridge version of Health Companion operationalizes that value on both sides**:
+
+- **Patient surface** (what we are already building): chat, labs, timeline, screenings, proactive messages, living state document.
+- **Clinician surface (new)**: a per-clinician dashboard with a row per enrolled patient. Each row surfaces current goals, biomarker trends, adherence signals, and — critically — alerts when a value trends out of range. The clinician can schedule a call, co-set new goals, prescribe screenings (which flow into the patient's Next Steps), and write medical notes that the patient reads in their timeline with the companion's calibrated voice translating any jargon.
+- **Payment flow**: the patient subscribes through the clinician's practice. The clinician's subscription pricing includes a per-active-patient component and a base platform fee. Some practices charge the patient directly; others fold it into a concierge fee; insurers subsidize in Phase 3.
+
+Why this shape is strong:
+1. **It answers "who pays" with a clean enterprise line** — clinicians and small practices have budget for tools that make the 15-minute visit productive. Patients individually pay less readily for preventive tools.
+2. **It resolves the regulatory posture sharply.** The patient-facing product stays strictly wellness-education-referral. The clinician-facing product is a clinical workflow tool used by a licensed professional — a category with its own regulatory path (not a medical device, but a clinical-decision-support adjunct).
+3. **It lands the equity dimension in practice, not slogan.** In LatAm and underserved US regions, the primary-care shortage is not about whether patients want care — it is about whether their clinician has the time and the context. This gives the clinician both.
+4. **It makes the memory visible on both sides.** The same living state document lives in the patient's phone and on the clinician's dashboard. Nothing is hidden, nothing is duplicated. The patient can read their own medical note translated into plain language. The clinician can see what the companion has been doing between visits.
+5. **It is what MedAssistant was pointing at** (ROADMAP Phase 4) but reframed as the same product with a clinician view, not a sister app. Simpler to build, simpler to sell, simpler to explain.
+
+**Pitch-line candidate** ⭐:
+> *"One product, two surfaces: a warm companion in the patient's pocket, and a structured record on the clinician's desk. The companion does the between-visits work the clinician cannot. The clinician does the in-visit work the companion must not."*
+
+**Roadmap impact**: the "MedAssistant (sister product)" bullet in Phase 4 is replaced with **"Health Companion Bridge — the clinician surface"** promoted to **Phase 2** (public launch). The business-model decision we have been deferring lands cleanly here: B2B2C through clinicians as the primary channel, B2C freemium as the entry path for patients who do not yet have a participating clinician, B2B insurer partnerships in Phase 3 as a scale multiplier.
+
+The rest of the ROADMAP threads align — Next Steps, Vaccines, Habits, proxy indicators, reminder engine — all of them gain a second consumer (the clinician) without needing to be rebuilt. The patient's medical notes flowing into their timeline become the fifth category alongside Companion-generated, Lab, You-said, and Future entries.
+
+This is the strongest shape the business has had so far. Continuing the day's planned blocks while this marinates.
+
+---
+
 ### OPEN — Claude Design render not visible (Apr 22 night)
 
 Implemented the full Claude Design handoff (commits `1bec7c0` and prior). The new visual (companion prose + heart avatar, Laura emerald bubbles, ToolTraceCard, ScheduleCard, inline LabExpanded, pill composer, reading-state animation, ProactiveLetter, ReasoningSheet) does not appear in Juan Manuel's browser.
