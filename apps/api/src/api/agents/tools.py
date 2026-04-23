@@ -239,6 +239,32 @@ def get_biomarkers() -> list[dict[str, Any]]:
     return list(_biomarkers)
 
 
+def seed_biomarker(
+    *,
+    name: str,
+    value: float,
+    unit: str,
+    sampled_on: str | None,
+    source: str,
+) -> None:
+    """Append a biomarker entry directly, bypassing the tool loop.
+
+    Used by demo fixture seeders (``POST /api/trends/seed-demo``) to plant
+    historical values without going through Opus. Shape matches what
+    ``log_biomarker`` produces so consumers can treat both identically.
+    """
+    _biomarkers.append(
+        {
+            "name": name,
+            "value": value,
+            "unit": unit,
+            "sampled_on": sampled_on,
+            "source": source,
+            "logged_at": datetime.now(UTC).isoformat(),
+        }
+    )
+
+
 def get_profile() -> dict[str, Any]:
     """Return a shallow copy of the profile dict."""
     return dict(_profile)

@@ -614,6 +614,67 @@ Quotable ⭐:
 
 ---
 
+### Trends v0.1 shipped (Apr 23 afternoon, solo)
+
+Juan Manuel went out to shop for the birthday lunch and asked for a plan
+for the next three hours. The highest-leverage, non-clinical item on the
+backlog was §16b — the trend charts he articulated this morning. Full
+session scoped in `~/.claude/plans/radiant-riding-orbit.md`.
+
+**What landed:**
+
+- **Backend**
+  - `apps/api/src/api/routers/trends.py` — `GET /api/trends` groups the
+    in-memory biomarker log by canonical name, sorts each series by
+    `sampled_on`, attaches a generic-adult `reference_range` when we have
+    one (fasting glucose, HbA1c, LDL/HDL, triglycerides, BP, RHR,
+    total cholesterol, BMI; weight left personal).
+  - `POST /api/trends/seed-demo` — idempotent seeder that plants the Laura
+    3-month glucose arc (2026-01-22=118, -02-22=115, -03-22=112,
+    -04-22=108). Two `lab_report` endpoints, two `user_said` middles, so
+    the source-dot story reads correctly.
+  - `seed_biomarker()` added as a public helper in `agents/tools.py` so
+    fixtures don't have to reach into module-private state.
+- **Frontend**
+  - `components/trends/TrendChart.tsx` — no chart library, pure SVG.
+    Reference band in zinc-100. Emerald polyline. Source-coded dots
+    (blue for `lab_report`/`wearable`, amber for `user_said`/`photo`)
+    matching the timeline dot semantics. First and last date labels in
+    Geist Mono. Min/max y-axis ticks in mono. Title-tooltip on each dot
+    with value, date, and source. `onPointClick` callback in place for
+    the future timeline drill-down.
+  - `components/trends/TrendCard.tsx` — wraps the chart with label,
+    latest value in Geist Mono 3xl, tiny delta-from-prior line, an
+    in-range / above-range / below-range pill, and a blue/amber legend
+    footer.
+  - `/trends` page — grid (1 → 2 → 3 columns responsively), priority
+    ordering so fasting glucose lands first, empty state that offers a
+    "Load Laura demo arc" button, disclaimer footer calling out that
+    ranges are generic adult values pending clinical audit.
+  - Nav link added to the main header next to *Settings* / *How this
+    works*; small "See trends →" link added to the right side of the
+    timeline legend inside `HealthTimeline.tsx`.
+  - Everything typechecks clean with `tsc --noEmit`.
+
+**Not shipped (intentional, left for Juan Manuel):**
+
+- **Sparklines in the profile panel.** Wanted to stay inside the 3-hour
+  budget without touching the profile-panel layout; defer to follow-up.
+- **Drill-down from chart point to timeline entry.** Scaffolded through
+  `onPointClick` but no wiring yet — depends on which timeline surface
+  is on screen.
+- **Managed Agents live path** — still gated by `HC_SKIP_MANAGED_AGENTS_CREATE`.
+- **Clinical audit of reference ranges** — generic adult values only.
+  Disclaimer on the page makes that explicit.
+
+**Question for Juan Manuel on return:**
+
+> The ranges are generic adult values (e.g. fasting glucose 70-99 mg/dL,
+> systolic BP 90-120 mmHg). Good enough for the demo, or do you want me
+> to add age/sex/history personalization before Saturday?
+
+---
+
 ### OPEN — Claude Design render not visible (Apr 22 night)
 
 Implemented the full Claude Design handoff (commits `1bec7c0` and prior). The new visual (companion prose + heart avatar, Laura emerald bubbles, ToolTraceCard, ScheduleCard, inline LabExpanded, pill composer, reading-state animation, ProactiveLetter, ReasoningSheet) does not appear in Juan Manuel's browser.

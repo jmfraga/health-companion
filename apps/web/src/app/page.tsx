@@ -993,6 +993,12 @@ function ChatExperience() {
               <span className="sm:hidden">+3 months</span>
             </button>
             <Link
+              href="/trends"
+              className="hidden text-xs text-zinc-500 hover:text-zinc-900 md:inline"
+            >
+              Trends
+            </Link>
+            <Link
               href="/how-this-works"
               className="hidden text-xs text-zinc-500 hover:text-zinc-900 md:inline"
             >

@@ -577,10 +577,16 @@ export function HealthTimeline({
   const body = (
     <div className="px-5 py-4">
       {/* Rail legend — three source-semantic dot chips */}
-      <div className="mb-3 flex flex-wrap gap-2.5 pl-1">
+      <div className="mb-3 flex flex-wrap items-center gap-2.5 pl-1">
         <LegendDot color="var(--hc-accent-600)" label="Companion" />
         <LegendDot color="#2563eb" label="Lab" />
         <LegendDot color="#d97706" label="You said" />
+        <a
+          href="/trends"
+          className="ml-auto text-[10.5px] font-semibold uppercase tracking-[0.06em] text-zinc-500 hover:text-emerald-700"
+        >
+          See trends →
+        </a>
       </div>
       {sorted.length === 0 ? (
         <p className="text-xs text-zinc-400">
