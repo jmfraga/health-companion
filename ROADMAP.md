@@ -153,6 +153,14 @@ Biomarkers and vital parameters accumulated over time only pay off if the user c
 
 **v0.1 shipped (2026-04-23):** `/trends` route live, `GET /api/trends` groups the in-memory biomarker log by name with generic-adult reference ranges. SVG chart (no lib) with shaded ref band, emerald series line, source-coded dots (blue for objective, amber for self-reported). Demo fixture seeds the fasting-glucose 3-month arc (118 → 108) used in the Act-2 proactive beat. Still pending: sparklines on the profile panel, drill-down into the timeline entry, and the clinical audit pass on the ref ranges (currently generic adult — no personalization by age/sex).
 
+**Decision on ranges (2026-04-23):** demo + hackathon submission ship with **generic adult ranges** and an explicit disclaimer. Post-MVP, ranges become a three-layer construct:
+
+1. **Baseline** — age/sex-normed generics (what v0.1 has today, refined for the cohorts we cover clinically).
+2. **Patient targets** — the user can set their own goals inside the app ("I want my fasting glucose under 100"). The chart shades that target alongside or instead of the generic range.
+3. **Clinician targets (Bridge, Phase 2)** — when a patient is enrolled with a clinic, the health team can set the patient's targets from the Bridge dashboard and those flow back to the chart. The companion's language adapts accordingly ("your doctor's target for this is ≤ 6.5% — you're trending well").
+
+This three-layer model reinforces the thesis: the same product, with the same visual, carries the first-timer who only has a generic reference, the conscious monitor who has defined their own goal, and the patient in active care whose goal is set by their doctor. One chart, three sources of truth, layered.
+
 ### 16. False-reassurance guard (calibrated caution)
 LLMs tend to validate. In longitudinal health contexts that bias can be clinically dangerous — a good day is not a recovery milestone, a single in-range lab value is not a diagnosis resolved, an absence of symptoms is not the absence of disease. The clinical voice is trained and audited to **prefer calibrated caution over automatic positive reinforcement**. This appears in the orchestrator system prompt as an explicit anti-pattern ("never normalize a single good day into a recovery milestone"), and in the product UX as deliberate restraint on celebration copy — celebrate actions the user took, not outcomes that are still preliminary.
 

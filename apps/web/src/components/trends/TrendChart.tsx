@@ -166,12 +166,11 @@ export function TrendChart({
 
   return (
     <svg
-      width={width}
-      height={height}
       viewBox={`0 0 ${width} ${height}`}
+      preserveAspectRatio="xMidYMid meet"
       role="img"
       aria-label={`Trend chart with ${plot.coords.length} point(s)`}
-      style={{ display: "block" }}
+      style={{ display: "block", width: "100%", height: "auto", maxWidth: width }}
     >
       {/* Reference band */}
       {plot.bandY1 !== null && plot.bandY2 !== null && (

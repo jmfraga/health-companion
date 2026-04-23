@@ -99,7 +99,7 @@ export function TrendCard({
         <p className="mt-0.5 font-mono text-[11px] text-zinc-500">{delta.label}</p>
       )}
 
-      <div className="mt-3">
+      <div className="mt-3 w-full overflow-hidden">
         <TrendChart
           points={points}
           unit={unit}
