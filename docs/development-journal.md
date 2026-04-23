@@ -547,6 +547,29 @@ Juan Manuel, while interacting: likes the flow, but the screening section copy i
 
 All three Phase-1 items captured in the ROADMAP as additions to the Next Steps / Screenings / Vaccines threads plus the Settings surface.
 
-### The re-upload bug Juan Manuel noticed
+### OPEN — Claude Design render not visible (Apr 22 night)
+
+Implemented the full Claude Design handoff (commits `1bec7c0` and prior). The new visual (companion prose + heart avatar, Laura emerald bubbles, ToolTraceCard, ScheduleCard, inline LabExpanded, pill composer, reading-state animation, ProactiveLetter, ReasoningSheet) does not appear in Juan Manuel's browser.
+
+Confirmed on his side:
+- Two browsers on the laptop render the same old look.
+- Phone renders the same old look.
+- Not a cache issue (multiple independent caches can't all be stale identically).
+
+Confirmed on the server side:
+- `npm run build` green, 6 routes static.
+- Fresh `.next` dir, dev server bound to `0.0.0.0:3000`, single next-server process.
+- Compiled client chunk `src_0d_f.le._.js` contains the string "Your companion" 4 times — new code IS in the bundle.
+- Initial HTML response is a skeleton (expected; auth loads client-side).
+
+Hypotheses for tomorrow morning:
+1. `AuthSkeleton` never unmounts — the `loading` from `useAuth()` never flips false on his client, so `ChatExperience` never mounts. Check the AuthProvider state on hydration; may be Supabase client init failing silently in production mode vs dev.
+2. React hydration mismatch between server skeleton and client ChatExperience; the browser quietly keeps the server tree. Would show as a warning in the console.
+3. The `ChatPage` session guard redirects on every render because `session` becomes `null` briefly. Would show as /login URL.
+4. Service worker from earlier overnight install (none registered that I know of, but worth verifying `navigator.serviceWorker.getRegistrations()` in DevTools).
+
+First morning check: open `http://100.72.169.113:3000` in a **new incognito window**, sign in as demo user, open DevTools Console — look for hydration errors / Supabase auth errors. If there are none and the UI still renders old, read the page DOM to confirm which component branch actually rendered.
+
+If hydration is silently swallowed, temporary unblock: move the page content to a Server Component wrapper that shows the new UI unconditionally while debugging the auth guard.
 
 Juan Manuel tried to upload the same lab PDF a second time after the first 400 bug and the drop zone would not respond. Likely the browser `<input type="file">` does not fire `change` when the selected filename matches the prior one. Quick fix when we revisit the drop zone: clear `inputRef.current.value = ""` after each upload attempt so the same file can be picked again. Captured here; will apply when we next touch `LabDropZone`.

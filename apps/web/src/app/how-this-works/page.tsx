@@ -124,9 +124,9 @@ export default function HowThisWorksPage() {
           <Section title="Who reviewed this">
             <p>
               Dr. Juan Manuel Fraga Sastr&iacute;as &mdash; general physician,
-              director of a cancer center. Every clinical string is authored
-              or reviewed by a practicing physician. The review log is part
-              of the product.
+              director of a cancer center, educator and tech enthusiast.
+              Every clinical string is authored or reviewed by a practicing
+              physician. The review log is part of the product.
             </p>
           </Section>
 
