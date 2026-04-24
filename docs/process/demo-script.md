@@ -3,100 +3,154 @@
 > Cronometered narration for the Sunday submission recording.
 > Presenter: Juan Manuel Fraga · Length: 3:00 hard cap · Language: English.
 > Recording tool: Loom, one take ideal, two as insurance.
+>
+> **v2 (Apr 23 night)** — Act 1 is now two turns, not one. A clinician
+> does not open a first conversation by prescribing a mammography; the
+> product should not either. Turn 1 is rapport and listening; turn 2 is
+> where the concrete proposal lands, anchored in what the patient
+> actually asked for.
 
 ---
 
 ## Pre-flight checklist (do BEFORE hitting record)
 
-- [ ] `http://100.72.169.113:3000` loads cleanly on a fresh desktop browser window (no DevTools open)
-- [ ] Logged in as demo user; chat transcript is empty; profile panel empty; timeline empty
-- [ ] Backend and frontend dev servers are running (ports 8000 and 3000)
-- [ ] Anonymized lab PDF is in a known path on the desktop
+- [ ] Production URL loads cleanly on a fresh desktop browser window (no DevTools open)
+- [ ] `?demo=1` bypass active (or signed in as demo user); chat transcript empty; profile panel empty; timeline empty; biomarker store empty
+- [ ] `POST /api/demo/reset` confirmed 200 from a second terminal so there's zero residue
+- [ ] Anonymized lab PDF is on the desktop at a known path
+- [ ] `/settings` → **Show reasoning** toggle ON (otherwise the "See reasoning" button is hidden)
 - [ ] Audio check — one short sentence, play back, adjust mic if needed
 - [ ] Browser zoom at 100 %, window at ~1400×900
 - [ ] Emergency pill visible bottom-left — DO NOT click during the recording
 
 ---
 
-## 00:00 — 00:15 · Cold open (15 s)
+## 00:00 — 00:12 · Cold open (12 s)
 
-Opening frame: the empty chat.
+Opening frame: the empty chat with the welcome card and the three example chips.
 
-> *"The health system today gets paid when you get sick. Every hospital, every clinic, every pharmacy runs on the engine of illness. Nobody is paid to keep you well."*
+> *"The health system today gets paid when you get sick. Nobody is paid
+> to keep you well."*
 >
-> *"Eric Topol wrote this idea in 2015. Ten years later, the tools to invert it exist. We call this one Health Companion."*
+> *"Eric Topol wrote that idea ten years ago. This is our answer —
+> Health Companion."*
 
-Camera stays on the clean chat, composer visible. No movement.
+Camera on the empty chat, chips visible, cursor in composer.
 
 ---
 
-## 00:15 — 01:00 · Act 1 — Meeting Laura (45 s)
+## 00:12 — 01:30 · Act 1 — Meeting Laura, in two turns (78 s)
+
+### Turn 1 — rapport and listening (≈ 38 s)
 
 Type into the composer, naturally paced:
 
-> **`I'm 44. My mom died of breast cancer at 52.`**
+> **`Hi, I'm Laura. I'm 44. My mom died of breast cancer at 52.`**
 
 Press send. Narration while the UI animates:
 
-> *"This is Laura. She is new here."*
+> *"This is Laura. She is new here. She has just shared something heavy.
+> Watch what happens."*
+
+Wait for tool-use events to stream. Profile panel fills in live on the right.
+
+> *"The profile panel, on the right, fills in as the companion hears.
+> Name. Age. Family history — her words, not a form."*
 >
-> *"Watch what happens as she talks. The companion reads her words, takes her history down — profile panel, on the right, filling in as the tool calls land — and starts thinking."*
+> *"And what comes back is not a schedule. It is what a good doctor does
+> first. The companion names her loss. It asks what's on her mind. It
+> doesn't prescribe anything — she hasn't asked for anything yet."*
 
-Wait for the companion's prose reply + ScheduleCard to render. Narration:
+Let the full reply finish streaming. Do NOT click See reasoning here.
 
-> *"What comes back is not a list. It is a schedule — three screenings the companion proposes because it already knows what matters here. Mammography next month. Earlier than the typical guideline — because Laura's mother."*
+### Turn 2 — the proposal, when she asks for it (≈ 40 s)
+
+Type into the composer:
+
+> **`I want to understand my own risk. What should I actually be doing?`**
+
+Press send.
+
+> *"Now she asks. And now — because she asked — the companion answers."*
+
+Wait for the ScheduleCard to render.
+
+> *"What comes back is a schedule — mammography, earlier than the
+> typical guideline. Not because the companion jumped to it, but because
+> Laura's mother. This is the sequence a practicing physician uses every
+> day: establish rapport, understand the fear, then propose."*
 
 Click **See reasoning** on the ScheduleCard. ReasoningSheet opens.
 
-> *"And because this is health, Laura can see the reasoning. USPSTF, biennial from 40. NCCN, ten years before the first-degree relative's diagnosis, or 40, whichever is later. Fifty-two minus ten is forty-two. Laura is forty-four. She is already inside the window."*
+> *"And Laura can see the reasoning. USPSTF, biennial from 40. NCCN, ten
+> years before the first-degree relative's diagnosis, or 40, whichever
+> is later. Fifty-two minus ten is forty-two. Laura is forty-four. She
+> is already inside the window."*
 >
-> *"No diagnosis. No prescription. Education, contextualization, referral to her doctor. The clinical voice is authored and reviewed by a practicing physician. Who, by the way, is me."*
+> *"No diagnosis. No prescription. Education, contextualization,
+> referral to her doctor. The clinical voice is authored and audited by
+> a practicing physician. Who, by the way, is me."*
 
 Close the ReasoningSheet.
 
 ---
 
-## 01:00 — 01:55 · Act 2 — Labs and proactivity (55 s)
+## 01:30 — 02:25 · Act 2 — Labs and proactivity (55 s)
 
-Drop the anonymized PDF into the drop-zone (or click Upload labs on mobile).
+Drop the anonymized PDF into the drop-zone.
 
-> *"Laura uploads her lab report. Opus 4.7 reads the PDF directly — no OCR library in between — and you can watch it work: opening the PDF, extracting values, cross-referencing against her profile, drafting what to say."*
+> *"Laura uploads her lab report. Opus 4.7 reads the PDF directly — no
+> OCR layer in between — and you can watch it work: opening the PDF,
+> extracting values, cross-referencing against her profile, drafting
+> what to say."*
 
-Reading state animates four steps. WorthAConversationCard surfaces with the glucose finding:
+Reading state animates four steps. WorthAConversationCard surfaces with the glucose finding.
 
-> *"Fasting glucose at 118. WHO calls 100 to 125 prediabetes. Not diabetes, not a verdict — a category that usually responds to how you eat and move. The companion says so. In her language. Without alarm."*
+> *"Fasting glucose at 118. WHO calls 100 to 125 prediabetes. Not
+> diabetes, not a verdict — a category that usually responds to how you
+> eat and move. The companion says so. In her language. Without alarm."*
 
 Click the **Simulate: 3 months later** button in the header. MonthsLaterFade runs.
 
 > *"Three months pass."*
 
-ProactiveLetter renders with the greeting and pill-tags:
+ProactiveLetter renders with the greeting and pill-tags.
 
-> *"The companion reaches out. Not because Laura asked. Because it has been keeping count. It references the conversation about her mother from day one. It remembers she turns 45 next month. It recalls the mammography they agreed on, and it shows Laura what it has been holding onto — the tags on the amber card are exactly the things they talked about the first day."*
+> *"The companion reaches out. Not because Laura asked. Because it has
+> been keeping count. It references the conversation about her mother
+> from day one. It remembers she turns 45 next month. It recalls the
+> mammography they agreed on, and it shows Laura exactly what it has
+> been holding onto — the pill-tags on the amber card are the things
+> they talked about the first day."*
 >
-> *"This is the moat every other health product does not have. Not search. Not a symptom checker. A relationship that compounds."*
+> *"This is the moat every other health product does not have. Not
+> search. Not a symptom checker. A relationship that compounds."*
 
 ---
 
-## 01:55 — 02:30 · The meta — how we built it (35 s)
+## 02:25 — 02:45 · The Bridge — what's next (20 s)
 
-Brief pan to a second browser window showing the repo, or stay on the app.
+Navigate to `/bridge`.
 
-> *"We built this using the same pattern the product needs. A coordinator agent works with specialists — frontend, backend, clinical voice. I am the fifth agent — the primary-care physician whose practice this is trying to scale. We learned to build health-as-a-team by building it as a team."*
+> *"This is the next surface — The Bridge. Same product, different
+> view. The clinician sees every patient between visits: goals, trends,
+> flags. The note the doctor writes in clinical language gets
+> auto-translated into what the patient actually reads. And it is
+> white-label — every clinic brands their own."*
 >
-> *"Everything is open source. Apache 2.0. The clinical voice, the privacy posture, the reasoning audit layer — all in the repo. The bundle Claude Design delivered is in `docs/references/design`. Every preventive recommendation cites the guideline inline."*
+> *"One product. Two surfaces. The companion does the between-visits
+> work the clinician cannot. The clinician does the in-visit work the
+> companion must not."*
 
 ---
 
-## 02:30 — 03:00 · Close — the ambition (30 s)
+## 02:45 — 03:00 · Close (15 s)
 
-Return to the chat with the accumulated state visible.
+Cut back to the chat or stay on the Bridge.
 
-> *"This is version zero-point-one. We built it in five nights. The demo you just saw is two acts of a product whose final shape covers every pillar of wellness, in every language, for every context — high-resource and low. The next surface is the clinician's: same product, a dashboard where doctors see their patients' goals between visits, write notes that the companion translates for the patient, prescribe screenings that land on the patient's phone as the next step they already agreed to."*
->
-> *"One product, two surfaces. A warm companion in the patient's pocket. A structured record on the clinician's desk. The companion does the between-visits work the clinician cannot. The clinician does the in-visit work the companion must not."*
->
-> *"Built with Opus 4.7."*
+> *"Version zero-point-one. Built in five nights with Opus 4.7 —
+> coordinator and specialists, the same pattern the product uses. Open
+> source, Apache 2.0, every guideline cited inline. Health Companion."*
 
 Fade to card: logo + tagline + repo URL.
 
@@ -104,25 +158,42 @@ Fade to card: logo + tagline + repo URL.
 
 ## Fallback beats (if something breaks mid-recording)
 
-- Lab upload fails → pivot straight to the Simulate button; the Act 2 proactive still carries the memory moat.
-- Simulate button errors → re-run the endpoint manually via a second terminal; narrate through the silence briefly, keep the take.
-- Auth drops → sign back in, skip Act 1, go straight to Act 2 if the timeline already has state.
+- **Turn 2 doesn't produce a ScheduleCard.** Narrate around it: *"the
+  companion invited a follow-up conversation — it is being careful
+  about what we haven't confirmed yet, which is exactly the point."*
+  Then pivot straight to Act 2.
+- **Lab upload fails.** Pivot straight to the Simulate button; the Act
+  2 proactive still carries the memory moat.
+- **Simulate button errors.** Re-run the endpoint manually via a second
+  terminal; narrate through the silence briefly, keep the take.
+- **Auth drops** (should not happen with the `?demo=1` bypass). Append
+  `?demo=1` to the URL and reload; skip Act 1, go to Act 2 if state
+  already exists.
+- **Bridge doesn't load.** Skip the Bridge segment; extend the close
+  with *"the next surface is the clinician's — same product, a Bridge
+  dashboard that goes live in Phase 2, white-label for every clinic."*
 
 ## Voice notes
 
-- Slow down at "One product, two surfaces" — let that line breathe.
-- Do not rush the reasoning walkthrough; it is the demo's clinical-integrity proof.
-- Smile once, when the proactive card drops — the warmth lands because you feel it.
+- Slow down when the companion asks *"what's on your mind?"* — it's
+  the rapport moment. The juez should feel the pause.
+- Slow down at *"One product. Two surfaces."* — let that line breathe.
+- Do not rush the reasoning walkthrough; it is the demo's clinical-
+  integrity proof.
+- Smile once, when the proactive card drops — the warmth lands because
+  you feel it.
 
 ## Shot list / screenshots to grab during recording
 
-- Empty chat with composer pill — opener still
-- ScheduleCard with three screenings rendered — Act 1 close
-- ReasoningSheet expanded — proof of craft
+- Empty chat with welcome card + 3 example chips — opener still
+- Profile panel mid-fill after Turn 1 — "humanized, not JSON"
+- ScheduleCard with the mammography entry rendered — Act 1 close
+- ReasoningSheet expanded with the guideline citations — proof of craft
 - LabDropZone mid-reading with 4 steps animating — Act 2 opening
 - ProactiveLetter with pill-tags — the moat moment
-- Timeline expanded on a lab_report — for the submission description and the README cover
+- The Bridge patient-list view with a white-label placeholder —
+  category-defining shot
 
 ---
 
-*Draft v1, Apr 23 morning. Revise after first take-through before recording on Saturday.*
+*Draft v2, Apr 23 night. Revise after Saturday AM run-through.*

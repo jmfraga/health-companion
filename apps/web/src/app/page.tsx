@@ -1226,6 +1226,13 @@ function ChatExperience() {
             >
               Trends
             </Link>
+            <Link
+              href="/bridge"
+              className="hidden text-xs text-zinc-500 hover:text-zinc-900 md:inline"
+              title="Preview of the clinician-facing surface"
+            >
+              The Bridge
+            </Link>
             {(messages.length > 0 || Object.keys(profile).length > 0) && (
               <button
                 type="button"
