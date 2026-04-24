@@ -183,3 +183,7 @@ tmp/
 *.mp3
 *.m4a
 !docs/**/*.pdf
+
+# Deploy helpers with plaintext secrets — never commit.
+.deploy-fly-secrets.sh
+.deploy-*.sh
