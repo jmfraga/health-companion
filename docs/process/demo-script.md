@@ -17,7 +17,8 @@
 - [ ] Production URL loads cleanly on a fresh desktop browser window (no DevTools open)
 - [ ] `?demo=1` bypass active (or signed in as demo user); chat transcript empty; profile panel empty; timeline empty; biomarker store empty
 - [ ] `POST /api/demo/reset` confirmed 200 from a second terminal so there's zero residue
-- [ ] Anonymized lab PDF is on the desktop at a known path
+- [ ] Synthetic demo PDF (`fixtures/labs-laura-demo.pdf`) is on the desktop at a known path
+- [ ] `POST /api/trends/seed-demo` confirmed 200 so `/trends` has the LDL ups-and-downs arc loaded
 - [ ] `/settings` → **Show reasoning** toggle ON (otherwise the "See reasoning" button is hidden)
 - [ ] Audio check — one short sentence, play back, adjust mic if needed
 - [ ] Browser zoom at 100 %, window at ~1400×900
@@ -97,20 +98,26 @@ Close the ReasoningSheet.
 
 ## 01:30 — 02:25 · Act 2 — Labs and proactivity (55 s)
 
-Drop the anonymized PDF into the drop-zone.
+Drop the synthetic demo PDF into the drop-zone
+(`fixtures/labs-laura-demo.pdf`).
 
 > *"Laura uploads her lab report. Opus 4.7 reads the PDF directly — no
 > OCR layer in between — and you can watch it work: opening the PDF,
 > extracting values, cross-referencing against her profile, drafting
 > what to say."*
 
-Reading state animates four steps. WorthAConversationCard surfaces with the glucose finding.
+Reading state animates four steps. WorthAConversationCard surfaces with
+the worth-a-conversation findings.
 
-> *"Fasting glucose at 118. WHO calls 100 to 125 prediabetes. Not
-> diabetes, not a verdict — a category that usually responds to how you
-> eat and move. The companion says so. In her language. Without alarm."*
+> *"Three things worth talking about. Fasting glucose at 118 — right at
+> the edge the ADA calls prediabetes, the range that usually responds
+> to how you eat and move. LDL cholesterol at 136 — above optimal, not
+> alarming. Total cholesterol at 223 — the same story. HDL is
+> protective at 70. None of it a verdict. All of it a conversation for
+> her doctor. The companion says so. In her language. Without alarm."*
 
-Click the **Simulate: 3 months later** button in the header. MonthsLaterFade runs.
+Click the **Simulate: 3 months later** button in the header.
+MonthsLaterFade runs.
 
 > *"Three months pass."*
 
@@ -125,6 +132,14 @@ ProactiveLetter renders with the greeting and pill-tags.
 >
 > *"This is the moat every other health product does not have. Not
 > search. Not a symptom checker. A relationship that compounds."*
+
+Navigate briefly to `/trends`.
+
+> *"And when Laura looks at her own trend line, the story is not a
+> straight march downward. LDL went from 136 to 128 to a setback at
+> 141 when travel broke the routine, back to 132 at the three-month
+> lab, and down to 112 by month six. Real change isn't linear — and
+> the companion has a voice for the setbacks, not just the wins."*
 
 ---
 
@@ -196,4 +211,8 @@ Fade to card: logo + tagline + repo URL.
 
 ---
 
-*Draft v2, Apr 23 night. Revise after Saturday AM run-through.*
+*Draft v3, Apr 24 morning — Act 2 now narrates multiple findings from
+the synthetic demo lab (glucose 118, LDL 136, cholesterol 223, HDL 70
+protective), and the Act-2 close visits `/trends` to narrate the
+six-month LDL arc with a setback in the middle. Revise after Saturday
+AM run-through.*

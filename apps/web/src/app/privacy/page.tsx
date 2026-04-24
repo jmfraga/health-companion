@@ -70,12 +70,54 @@ export default function PrivacyPage() {
         </div>
 
         <article className="space-y-8">
+          <Section title="This is a hackathon demo — read this first">
+            <p>
+              What you are using is a hackathon demonstration of Health
+              Companion &mdash; a showcase of the shape and voice of the
+              product, not the production clinical tool yet.
+            </p>
+            <p>
+              Two things worth saying out loud.
+            </p>
+            <p>
+              The patient story woven through the recorded walk-through
+              &mdash; her name, her labs, her proactive follow-up &mdash; is{" "}
+              <strong>synthetic</strong>, fabricated for illustration. The
+              sample lab report is anonymized. No real patient data is
+              processed or retained in the scripted demo.
+            </p>
+            <p>
+              If you decide to interact with the companion using your own
+              health information to see how it feels, that is welcome
+              &mdash; the demo is built to respond to real life. Please
+              know: this is still a demo environment. We have not yet
+              completed the Business Associate Agreement with our model
+              provider, the per-user encryption, or the clinical-grade
+              audit controls that a production health tool requires. Share
+              what you would share in a first conversation with a new
+              doctor. Hold back what you would not.
+            </p>
+            <p>
+              Everything described below is the architecture we are
+              building toward in Phase 1 &mdash; the BAA, row-level
+              security, consent flows, export and delete. Scoped, not
+              speculative. But future, not now.
+            </p>
+          </Section>
+
           <Section title="What we store">
             <p>
               Profile facts you tell the companion, biomarkers from labs you
               upload, screenings scheduled, conversations worth keeping
               (curated), and timeline entries. Nothing we haven&rsquo;t been
-              told or shown. All encrypted at rest and in transit.
+              told or shown.
+            </p>
+            <p>
+              In the Phase-1 production build, everything is encrypted at
+              rest and in transit. In the demo you are using today,
+              conversation state lives in process memory and is cleared
+              when you press <strong>Start fresh</strong> or when the
+              session ends.
             </p>
           </Section>
 
@@ -90,9 +132,11 @@ export default function PrivacyPage() {
 
           <Section title="Your data travels with you">
             <p>
-              You can export everything as JSON or PDF, any time. You can
-              delete everything, any time. If you delete, we delete &mdash;
-              from our servers and our backups within thirty days.
+              Export to JSON or PDF and per-user delete are Phase 1
+              features. In the demo you are using today, the{" "}
+              <strong>Start fresh</strong> button clears everything on the
+              server instantly. When the Phase 1 build goes live, deletes
+              propagate to backups within thirty days.
             </p>
           </Section>
 

@@ -11,7 +11,12 @@ years, available to everyone.
 
 Work-in-progress submission for the **Built with Opus 4.7** hackathon
 (April 21–26, 2026). Not production-ready. Not a medical device. Does not
-provide medical advice, diagnosis, or treatment.
+provide medical advice, diagnosis, or treatment. The recorded walk-
+through uses a synthetic patient throughout; judges are welcome to
+interact with their own information knowing this is a demo environment,
+not a clinical-grade tool — the Phase-1 work to reach that bar (BAA,
+per-user encryption, consent flows, audit controls) is scoped in
+[`docs/product-horizon.md`](./docs/product-horizon.md).
 
 ## Three users, one product
 

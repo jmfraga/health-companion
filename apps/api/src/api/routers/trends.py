@@ -128,21 +128,33 @@ async def read_trends() -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 
-_DEMO_GLUCOSE_POINTS: list[tuple[str, float, str]] = [
-    ("2026-01-22", 118, "lab_report"),
-    ("2026-02-22", 115, "user_said"),
-    ("2026-03-22", 112, "user_said"),
-    ("2026-04-22", 108, "lab_report"),
+_DEMO_LDL_POINTS: list[tuple[str, float, str]] = [
+    # Initial lab in the demo fixture (Laura's January lab, LDL 136).
+    ("2026-01-05", 136, "lab_report"),
+    # Self-reported after first dietary and walking intervention.
+    ("2026-02-15", 128, "user_said"),
+    # Setback — travel, off-program, user reports it proactively.
+    ("2026-03-10", 141, "user_said"),
+    # Back on track · lab re-check.
+    ("2026-04-10", 132, "lab_report"),
+    # Continuing improvement · self-reported follow-up.
+    ("2026-05-20", 124, "user_said"),
+    # Six-month lab — durable improvement.
+    ("2026-07-05", 112, "lab_report"),
 ]
 
 
 @router.post("/trends/seed-demo")
 async def seed_demo() -> dict[str, Any]:
-    """Seed the demo arc — four fasting-glucose points across three months.
+    """Seed the demo arc — six LDL points across six months.
 
     Used by the ``/trends`` page's "Load the demo arc" button and by the
     recorded walk-through so the longitudinal surface is never empty on a
-    cold open. Illustrative data only, not tied to any real user.
+    cold open. The arc goes 136 → 128 → 141 → 132 → 124 → 112 — real
+    interventions don't move in a straight line, and the companion's
+    voice benefits from having a setback to acknowledge. Ends better
+    than it started, which is the demo's real claim. Illustrative data
+    only, not tied to any real user.
 
     Safe to call repeatedly: skips entries whose ``(name, sampled_on)``
     key already exists in the log.
@@ -152,11 +164,11 @@ async def seed_demo() -> dict[str, Any]:
         for b in get_biomarkers()
     }
     seeded = 0
-    for sampled_on, value, source in _DEMO_GLUCOSE_POINTS:
-        if ("fasting_glucose", sampled_on) in existing:
+    for sampled_on, value, source in _DEMO_LDL_POINTS:
+        if ("ldl", sampled_on) in existing:
             continue
         seed_biomarker(
-            name="fasting_glucose",
+            name="ldl",
             value=value,
             unit="mg/dL",
             sampled_on=sampled_on,
