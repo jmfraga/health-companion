@@ -70,6 +70,13 @@ same for any user who opens it with any life.
 - **Calibrated caution over automatic validation.** One in-range lab value
   is not a disease resolved; one good sleep score is not a recovery. The
   companion prefers honest restraint over celebration copy.
+- **Accessibility is an architectural constraint.** Inference cost has to
+  fit the populations the thesis commits to serving — it's not a margin
+  problem, it's a design problem. The Phase-1 cost architecture is
+  specified in
+  [`ROADMAP.md`](./ROADMAP.md) §18; three levers (prompt caching, model
+  routing by turn type, extended thinking on demand) target a $15/user-
+  month figure down to under $3 without changing the clinical voice.
 
 ## What runs today
 

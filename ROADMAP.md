@@ -164,6 +164,34 @@ This three-layer model reinforces the thesis: the same product, with the same vi
 ### 16. False-reassurance guard (calibrated caution)
 LLMs tend to validate. In longitudinal health contexts that bias can be clinically dangerous — a good day is not a recovery milestone, a single in-range lab value is not a diagnosis resolved, an absence of symptoms is not the absence of disease. The clinical voice is trained and audited to **prefer calibrated caution over automatic positive reinforcement**. This appears in the orchestrator system prompt as an explicit anti-pattern ("never normalize a single good day into a recovery milestone"), and in the product UX as deliberate restraint on celebration copy — celebrate actions the user took, not outcomes that are still preliminary.
 
+### 18. Accessibility as a cost-architecture constraint
+Accessibility is not a feature we layer on top of a premium product — it's a constraint the architecture has to respect from day one. If the cheapest path to meaningful use costs $15/month in inference, the product reinforces the inequity it claims to invert. The work of Phase 1 is getting that number under $3 without changing the clinical voice.
+
+**Where the cost lives today (hackathon MVP).** A typical turn costs roughly $0.17 — ~25K input tokens at Opus 4.7 rates ($5/MTok) plus ~2K output tokens ($25/MTok). The input is dominated by the full system prompt (~5K tokens), the injected state snapshot that grows with use, and the replayed conversation history. At 2-3 turns/day that is $12–20 per user per month. At 10K active users: $120–200K per month. At 100K: up to $2M per month. The math breaks before the thesis is tested.
+
+**Levers, in order of impact to effort.**
+
+| Lever | Approx. reduction | Effort |
+|---|---|---|
+| **Prompt caching with longer TTL.** `cache_control: ephemeral` is wired on the system block (5-min TTL); upgrading to 1-hour cache writes and splitting the state snapshot into a semi-stable half (profile + semantic memory) and a fresh half (recent biomarkers) brings the effective input rate down to ~10% of list on cache hits. | 40–60% of input cost | Days |
+| **Routing by turn type.** A classifier labels each turn — `rapport`, `memory_write`, `small_talk`, `labs`, `screening`, `proactive`, `trend_explain` — and sends the cheap-but-warm bulk to **Haiku 4.5** (~30× cheaper) or **Sonnet 4.6** (~5× cheaper). Opus 4.7 is reserved for multimodal lab ingestion, screening reasoning visible to the user, proactive letters, and anything with an audit-trail expectation. | 60–80% of total when the mix is right | 1–2 weeks |
+| **Extended thinking on demand.** The orchestrator currently invokes adaptive thinking with `effort=max` on every turn. Rapport and small-talk don't need 6K-token reasoning budgets. Enable deep thinking only for clinically-loaded turns. | 30–50% of output cost | Days |
+| **Conversation history compression.** After N turns, earlier messages are summarized into a compact semantic state and replaced in the replay. The companion itself can run the compaction pass between turns. | 20–40% of input on long sessions | Week |
+| **Embedding-retrieved memory.** Instead of dumping episodic + semantic memory in the state snapshot, retrieve the 3–5 items most relevant to the current turn via pgvector or a local sentence-transformer. | 10–20% of input at scale | Week |
+| **Local classifier on-device.** The routing decision runs on a small local model (MLX / Ollama) so the decision itself doesn't add a paid API call. Works especially well for clinics running a local inference appliance — inference never leaves the building. | Enables routing without tax | Days |
+| **Sectioned system prompt.** The preventive-screening knowledge block and the sanitary-interpreter glossary only load when the turn type calls for them (light RAG). The static guardrails stay resident. | 20–30% of input | Week |
+
+Applying the first three levers — caching, routing, thinking-on-demand — gets the per-turn cost from ~$0.17 to roughly $0.04 without touching the clinical surface. At 2-3 turns/day, that is $2.40–$3.60 per active user per month. The threshold where primary-care economies in México and LatAm can absorb the cost.
+
+**Tiered economics.** The cost architecture maps directly onto three sustainable surfaces:
+
+- **Free tier · first-timer path.** Haiku + Sonnet, aggressive caching, extended thinking off by default. Anyone who opens the app can use it without friction. Funded by the tiers below.
+- **Patient tier · the conscious monitor.** Sonnet with Opus for the moments that matter (labs, See reasoning, proactive letters). Subscription in the $3–5/month range. Priced to be reachable, not premium.
+- **Bridge tier · B2B2C with clinics.** The clinic pays for its enrolled panel in the $10–20/patient/month range. Full Opus available. The clinic captures the return in time saved (fewer after-hours calls, patients arriving prepared, between-visit adherence). This is the tier that scales the free tier beneath it.
+- **Public-health tier · insurers and governments.** Priced against existing reimbursement codes for preventive care (IMSS in México, CMS in the United States). This is where the thesis — keeping people well, paid for — stops being a startup pitch and becomes policy infrastructure.
+
+**What this means for the hackathon.** The cost-optimization work does not ship in Phase 0. What ships is the acknowledgement that the economics are load-bearing and that the plan is concrete, not hand-waved. The Phase-1 thread is a real engineering roadmap with measurable checkpoints, not a pitch slide.
+
 ---
 
 ## Phases
