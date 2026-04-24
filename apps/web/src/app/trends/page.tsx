@@ -145,7 +145,7 @@ export default function TrendsPage() {
             disabled={seeding}
             className="mt-4 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.08em] text-emerald-700 transition hover:bg-emerald-100 disabled:opacity-60"
           >
-            {seeding ? "Loading fixture…" : "Load the Laura demo arc"}
+            {seeding ? "Loading fixture…" : "Load the demo arc"}
           </button>
         </div>
       )}

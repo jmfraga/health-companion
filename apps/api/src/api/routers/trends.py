@@ -138,10 +138,14 @@ _DEMO_GLUCOSE_POINTS: list[tuple[str, float, str]] = [
 
 @router.post("/trends/seed-demo")
 async def seed_demo() -> dict[str, Any]:
-    """Seed the Laura demo arc — four fasting-glucose points over 3 months.
+    """Seed the demo arc — four fasting-glucose points across three months.
 
-    Safe to call repeatedly: checks for existing entries with the same
-    ``name`` + ``sampled_on`` and skips those.
+    Used by the ``/trends`` page's "Load the demo arc" button and by the
+    recorded walk-through so the longitudinal surface is never empty on a
+    cold open. Illustrative data only, not tied to any real user.
+
+    Safe to call repeatedly: skips entries whose ``(name, sampled_on)``
+    key already exists in the log.
     """
     existing = {
         (b.get("name"), b.get("sampled_on"))

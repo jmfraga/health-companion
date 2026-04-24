@@ -2,10 +2,10 @@
 
 > *"The health system today gets paid when you get sick. We're building the first companion whose only job is to keep you well — in the language you actually speak."*
 
-This roadmap describes the capabilities Health Companion will cover over time. The hackathon MVP is v0.1 — the first breath of a multi-year product. The operational week-of-hackathon plan lives separately in [`docs/hackathon-plan.md`](./docs/hackathon-plan.md).
+This roadmap describes the capabilities Health Companion will cover over time. The hackathon MVP is v0.1 — the first breath of a multi-year product. The operational week-of-hackathon plan lives separately in [`docs/process/hackathon-plan.md`](./docs/process/hackathon-plan.md).
 
-For the "why", see [`docs/tesis-del-fundador-v1.md`](./docs/tesis-del-fundador-v1.md).
-For the "against whom", see [`docs/competitive-analysis-v1.md`](./docs/competitive-analysis-v1.md).
+For the "why", see [`docs/process/tesis-del-fundador-v1.md`](./docs/process/tesis-del-fundador-v1.md).
+For the "against whom", see [`docs/process/competitive-analysis-v1.md`](./docs/process/competitive-analysis-v1.md).
 
 ---
 
@@ -185,7 +185,7 @@ The first breath. Demonstrates the product's soul inside a 3-minute presentation
 - **How-this-works** static surface explaining the model, the clinical sources cited, the "See reasoning" audit path, and what the product will never do.
 - **Emergency affordance**: a persistent, low-friction control that opens region-specific emergency numbers + mental-health crisis lines. Never buried.
 
-Operational plan: [`docs/hackathon-plan.md`](./docs/hackathon-plan.md).
+Operational plan: [`docs/process/hackathon-plan.md`](./docs/process/hackathon-plan.md).
 
 ### Phase 1 · Private beta (May – August 2026)
 

@@ -80,35 +80,36 @@ The founder — a practicing primary-care physician — sits on the team not as 
 
 ---
 
-## Observability (minimum for hackathon)
+## Observability
 
-Every orchestrator invocation is persisted as an `agent_runs` row in SQLite:
-
-- `id`, `agent_name`, `session_id`
-- `status` (running / completed / failed)
-- `started_at`, `finished_at`, `duration_ms`
-- `input_tokens`, `output_tokens`
-- `cost_usd` (computed at Opus 4.7 rates)
-- `tool_calls` (JSON)
-- `error` (nullable)
-
-Enough for honest cost tracking and a debug trail during the demo.
+Not implemented in the MVP. The orchestrator does not persist per-run
+audit rows today — every piece of state is cleared on process restart.
+An `agent_runs` audit table (with per-turn `input_tokens`,
+`output_tokens`, `cost_usd`, tool-call digest, and error field) is a
+Phase-1 concern and lands together with the Supabase persistence layer.
+Documents that claim otherwise are out of date; this file is the source
+of truth.
 
 ---
 
-## Cost model (hackathon demo)
+## Cost model (rough)
 
-Opus 4.7 at $5 / MTok input, $25 / MTok output (April 2026). Extended thinking counts as output tokens.
+Opus 4.7 at $5 / MTok input, $25 / MTok output (April 2026). Extended
+thinking counts as output tokens. These are order-of-magnitude
+estimates, not measured — the counter itself is Phase-1 work.
 
-| Scenario | Typical cost per run |
-|----------|---------------------|
+| Scenario | Approx. |
+|----------|---------|
 | Onboarding turn with tool use | ~$0.02 |
 | Full Act 1 (3–4 turns + screening render) | ~$0.05 |
 | PDF ingestion with multimodal Opus 4.7 | ~$0.10 |
 | Proactive message generation | ~$0.02 |
-| Full demo end-to-end | < $0.25 |
+| Full recorded walk-through end-to-end | < $0.25 |
 
-Prompt caching (1-hour write) on the shared orchestrator system prompt cuts the input cost on every turn after the first.
+Prompt caching (1-hour write) on the shared orchestrator system prompt
+cuts the input cost on every turn after the first — this is wired today
+in `runner.py` via `cache_control: ephemeral` on the static system
+block, with the per-turn state snapshot sent as a fresh second block.
 
 ---
 
