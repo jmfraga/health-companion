@@ -98,11 +98,14 @@ same for any user who opens it with any life.
 
 Full architecture notes in [`docs/architecture.md`](./docs/architecture.md).
 How the runtime uses Opus 4.7, the tool surface, and the extended-thinking
-contract are in [`docs/agents.md`](./docs/agents.md). The product vision
-across phases lives in [`ROADMAP.md`](./ROADMAP.md). The founder's thesis,
-the original hackathon brief, the iterative planning docs, the clinical
-audit checklist, and the running development journal are archived under
-[`docs/process/`](./docs/process/).
+contract are in [`docs/agents.md`](./docs/agents.md). The capability
+catalog across phases lives in [`ROADMAP.md`](./ROADMAP.md); the strategic
+trajectory — phases, dependencies, open decisions, what *becoming Health
+Companion for real* looks like — is in
+[`docs/product-horizon.md`](./docs/product-horizon.md). The founder's
+thesis, the original hackathon brief, the iterative planning docs, the
+clinical audit checklist, and the running development journal are archived
+under [`docs/process/`](./docs/process/).
 
 ## How this was built
 
