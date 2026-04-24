@@ -16,11 +16,17 @@ TOOLS: list[dict[str, Any]] = [
     {
         "name": "save_profile_field",
         "description": (
-            "Save a single field to the user's health profile. Call this naturally "
-            "during conversation as you learn things about the user — never make it "
-            "feel like a form. Example fields: 'age', 'sex', 'country', "
-            "'family_history.breast_cancer_mother', 'habits.tobacco'. Values can be "
-            "strings, numbers, or booleans."
+            "Save a single field to the user's health profile. Call this "
+            "naturally during conversation as you learn things about the "
+            "user — never make it feel like a form. Example field shapes "
+            "across domains so nothing is primed toward one topic: 'age', "
+            "'sex', 'name', 'country', 'occupation', 'concerns.sleep', "
+            "'concerns.longevity', 'concerns.weight', 'lifestyle.tobacco', "
+            "'lifestyle.exercise', 'family_history.<condition>_<relation>', "
+            "'conditions.<name>'. Use 'sex' only when the user has "
+            "explicitly shared it; otherwise leave it unset and ask gently "
+            "when sex becomes clinically relevant. Values can be strings, "
+            "numbers, or booleans."
         ),
         "input_schema": {
             "type": "object",
@@ -84,29 +90,39 @@ TOOLS: list[dict[str, Any]] = [
     {
         "name": "fetch_guidelines_for_age_sex",
         "description": (
-            "Read-only lookup of relevant preventive-care guidelines for a given "
-            "age, sex, and concern. Call this before recommending a screening or "
-            "discussing risk so your answer cites the specific guideline. The "
-            "model should still reason about which recommendations apply — the "
-            "tool only surfaces the menu."
+            "Read-only lookup of relevant preventive-care guidelines for a "
+            "given age, sex, and concern. Call this only after the user has "
+            "explicitly shared both their age and their sex — never infer "
+            "either in order to make this call. If either is missing, ask "
+            "for it gently in prose before reaching for this tool. The "
+            "``concern`` must reflect something the user has actually "
+            "raised or is clearly implied by a fact they shared — do not "
+            "pick a concern on their behalf."
         ),
         "input_schema": {
             "type": "object",
             "properties": {
                 "age": {
                     "type": "integer",
-                    "description": "User's age in years.",
+                    "description": "User's age in years, as they stated it.",
                 },
                 "sex": {
                     "type": "string",
                     "enum": ["female", "male", "intersex", "prefer_not_to_say"],
-                    "description": "User's sex assigned for clinical-guideline purposes.",
+                    "description": (
+                        "User's sex as they stated it. Use "
+                        "'prefer_not_to_say' when they've declined; never "
+                        "guess."
+                    ),
                 },
                 "concern": {
                     "type": "string",
                     "description": (
-                        "Focus area, e.g. 'cardiovascular', 'breast_cancer', "
-                        "'diabetes', 'mental_health', 'colon_cancer'."
+                        "Focus area the user has raised. Broad examples: "
+                        "'cardiovascular', 'sleep', 'diabetes', 'mental_health', "
+                        "'cancer_screening_general', 'colon_cancer', "
+                        "'breast_cancer', 'cervical_cancer', 'prostate_cancer', "
+                        "'longevity', 'weight', 'bone_health'."
                     ),
                 },
             },
@@ -162,12 +178,15 @@ TOOLS: list[dict[str, Any]] = [
     {
         "name": "remember",
         "description": (
-            "Curate memory. Call this sparingly — only when something is worth "
-            "keeping across sessions. Use 'episodic' for timestamped user "
-            "utterances ('Laura told me on April 21 that her mom died of breast "
-            "cancer at 52') and 'semantic' for durable, distilled facts about "
-            "the user ('Laura has a first-degree family history of breast "
-            "cancer')."
+            "Curate memory. Call this sparingly — only when something is "
+            "worth keeping across sessions. Use 'episodic' for a dated user "
+            "utterance that you want to recall verbatim later (format: 'On "
+            "YYYY-MM-DD the user said/mentioned …'). Use 'semantic' for a "
+            "durable, distilled fact about the user that should stay "
+            "front-of-mind in future turns. Both examples in the longer "
+            "system prompt are illustrative only; remember what this "
+            "specific user has actually told you, never what the examples "
+            "described."
         ),
         "input_schema": {
             "type": "object",
@@ -185,8 +204,10 @@ TOOLS: list[dict[str, Any]] = [
                     "type": "array",
                     "items": {"type": "string"},
                     "description": (
-                        "Optional tags to make the memory retrievable, e.g. "
-                        "['family_history', 'breast_cancer']."
+                        "Optional tags to make the memory retrievable. Use "
+                        "neutral dimensions, not the content of another "
+                        "user's story, e.g. ['sleep', 'goal'] or "
+                        "['family_history', 'cardiac']."
                     ),
                 },
             },
