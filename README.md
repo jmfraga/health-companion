@@ -61,6 +61,47 @@ The script is at [`docs/process/demo-script.md`](./docs/process/demo-script.md).
 That narrative is illustrative, not prescriptive — the product behaves the
 same for any user who opens it with any life.
 
+## Where we intervene — the three stages of any disease
+
+Medical school teaches that every disease moves through three stages.
+
+**Stage 1 · Health.** The person is well. Routines, habits, sleep, stress
+— nothing "is happening" to them. The system does not know they exist.
+
+**Stage 2 · Preclinical.** Something has started to change, but nothing
+shows. Blood pressure creeps up half a point a year; a lab value drifts
+each panel; muscle mass slips. The person feels fine. The only thing
+that finds the change is a screening nobody asked for.
+
+**Stage 3 · Clinical.** The symptom appears, the system engages.
+Medicine knows how to treat — and the later we arrive, the more it
+costs, the worse the outcomes, the less often we return the person to
+where they were.
+
+Drawn as a line: flat through Stage 1, sloping downward invisibly
+through Stage 2, steepening in Stage 3 — even with treatment,
+recovering some ground, rarely all of it. The area under the curve is
+the human cost.
+
+What medical school does not teach explicitly — what Dr. Fraga learned
+across twenty years of practice — is that **Stage 1 is not a passive
+state**. In the health stage, the person is either building their
+future health every day or eroding it every day. The difference
+between arriving strong at sixty and arriving fragile is not made by
+the diagnosis received at fifty-two. It is made across the two decades
+when nobody was watching.
+
+**Health Companion is designed to meet the person before Stage 2 — and
+at worst, inside it, before the symptom opens the door.** Not only to
+hold the line, but to lift it: leave the person measurably better than
+when we met. A life measured not by a diagnosis avoided, but by a
+level of health actively built.
+
+This is why the product measures itself differently. Not how many
+diagnoses it catches — that is consequence, not purpose. How many
+years of real health it adds before the system had reason to call the
+person a patient at all.
+
 ## Design principles
 
 - **Wellness, not diagnosis.** Educates, contextualizes, refers. Never

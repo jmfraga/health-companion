@@ -48,7 +48,29 @@ In this exact order:
 
 ---
 
-## 5. Two levels of prevention
+## 5. The natural history of disease — and where we intervene
+
+Medical school teaches that every disease moves through three stages.
+
+**Stage 1 — Health.** The person is well. They have their routines, their habits, their way of eating, sleeping, moving, carrying stress. Nothing is happening to them. No one calls them a patient. The system does not know they exist.
+
+**Stage 2 — Preclinical.** Something has started to change, but nothing shows. Blood pressure creeps half a point each year. A lab value drifts across every panel. Muscle mass slips by half a kilo a year after thirty. The person feels fine. The system has no reason to engage, because the person is not looking for it — and the only thing that would find the change is a screening nobody asked them to get.
+
+**Stage 3 — Clinical.** The symptom appears, or a screening catches the finding, and the person finally touches the system. This is where modern medicine shines — and where it most often fails. It shines because it knows how to treat. It fails because we arrive late. The later we arrive, the more it costs, the more complicated it becomes, the worse the outcomes, and the less often we return the person to the level of health they had before.
+
+Draw it as a line: flat through Stage 1. Sloping downward through the preclinical window, invisibly. Then steepening in Stage 3 — and with treatment, recovering some ground, but rarely all of it. The area under the curve is the human cost.
+
+What medical school did not teach — what I had to learn across twenty years of practice — is that **Stage 1 is not a passive state**. In the health stage, the person is either **building their present and future health every day, or eroding it every day**. The difference between arriving strong at sixty and arriving fragile is not made by the diagnosis someone receives at fifty-two. It is made during the two decades when nobody was watching.
+
+This is where Health Companion wants to live.
+
+The ambition of the product is to meet the person **before** the preclinical stage — and at worst, to find them inside it, before the symptom opens the door to the system. Then not only to hold the line, but to lift it: leave the person measurably better than when we met. A life measured not against a diagnosis avoided, but against a level of health actively built.
+
+This is also why the product measures itself differently. Not by how many diagnoses it catches — that is consequence, not purpose. By how many years of real health it adds before the system had reason to call the person a patient at all.
+
+---
+
+## 6. Two levels of prevention
 
 ### Primary prevention — avoid getting sick
 Proactive accompaniment with personalized, non-invasive reminders, in everyday language.
@@ -61,7 +83,7 @@ Proactive accompaniment with personalized, non-invasive reminders, in everyday l
 
 ---
 
-## 6. The central metaphor: the old family doctor, but digital
+## 7. The central metaphor: the old family doctor, but digital
 
 > **"A friend who knows health."**
 >
@@ -78,7 +100,7 @@ Characteristics of that relationship:
 
 ---
 
-## 7. The "sanitary interpreter" — the underlying differentiator
+## 8. The "sanitary interpreter" — the underlying differentiator
 
 The app works as a **translator between medical language and everyday language**. It is health literacy delivered through conversation, personalized to the user's profile.
 
@@ -86,7 +108,7 @@ This is not a feature — it is a new category. Today no product exists whose on
 
 ---
 
-## 8. The equity dimension — key to the pitch
+## 9. The equity dimension — key to the pitch
 
 The app **works in both contexts**:
 
@@ -99,7 +121,7 @@ This makes Health Companion a clear case of **AI for beneficial outcomes** — d
 
 ---
 
-## 9. Implications for Claude Code
+## 10. Implications for Claude Code
 
 Every product decision must pass through this filter:
 
@@ -112,7 +134,7 @@ If any answer is "no", the feature does not belong in the MVP.
 
 ---
 
-## 10. Seed phrase for the pitch
+## 11. Seed phrase for the pitch
 
 > *"The health system today gets paid when you get sick. We're building the first companion whose only job is to keep you well — in the language you actually speak."*
 
