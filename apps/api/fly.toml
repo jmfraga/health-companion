@@ -1,0 +1,43 @@
+# Fly.io configuration for the Health Companion API.
+# Update `app` to the real app name the first time you run `fly launch`.
+# Region `qro` doesn't exist; closest to Querétaro is `mia` or `sjc`.
+# Pick `sjc` for lowest latency to US + MX, `mia` if the audience is more
+# EU/east-coast-biased. Stream SSE responses benefit from one region; don't
+# enable multi-region for the MVP — it breaks the in-memory state shared
+# across endpoints.
+
+app = "health-companion-api"
+primary_region = "sjc"
+kill_signal = "SIGINT"
+kill_timeout = "15s"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "8080"
+  ENVIRONMENT = "production"
+  DEBUG = "false"
+  # CORS_ORIGINS gets set via `fly secrets set` — includes the Vercel URL.
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  # Keep at least one machine warm so SSE streaming doesn't cold-start on
+  # the first judge who lands. The MVP state is in-memory; scaling to
+  # more than one machine loses cross-endpoint memory.
+  auto_stop_machines = "suspend"
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ["app"]
+
+  [[http_service.checks]]
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "10s"
+    method = "GET"
+    path = "/health"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "1gb"
