@@ -39,8 +39,8 @@ from api.schemas.lab import LabAnalysis
 router = APIRouter(prefix="/api", tags=["labs"])
 
 
-MAX_TOKENS = 8192
-THINKING_EFFORT = "max"
+MAX_TOKENS = 24576
+THINKING_EFFORT = "high"
 
 # Accepted non-PDF uploads — images the user snaps of a lab printout, a
 # bathroom scale, a BP monitor, a pulse oximeter, a glucometer, a
