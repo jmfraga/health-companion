@@ -117,6 +117,78 @@ const SCREENING_LABELS: Record<string, string> = {
   cardiometabolic_checkup_mx: "PrevenIMSS checkup",
 };
 
+// Map the most common dotted-path profile keys to readable English labels.
+// Keys we haven't anticipated fall through to a Title-Cased version of the
+// last path segment so the panel never renders raw snake_case.
+const PROFILE_LABELS: Record<string, string> = {
+  name: "Name",
+  age: "Age",
+  sex: "Sex",
+  gender: "Gender",
+  date_of_birth: "Date of birth",
+  occupation: "Occupation",
+  "family_history.breast_cancer_mother": "Mother had breast cancer",
+  "family_history.breast_cancer_mother_age_at_death":
+    "Age when mother died of breast cancer",
+  "family_history.breast_cancer_sister": "Sister had breast cancer",
+  "family_history.heart_attack_father": "Father had heart attack",
+  "family_history.heart_attack_mother": "Mother had heart attack",
+  "family_history.colon_cancer": "Family history of colon cancer",
+  "family_history.diabetes": "Family history of diabetes",
+  "family_history.alzheimer": "Family history of Alzheimer's",
+  "family_history.stroke": "Family history of stroke",
+  "concerns.sleep": "Working on: sleep",
+  "concerns.weight": "Working on: weight",
+  "concerns.stress": "Working on: stress",
+  "concerns.longevity": "Working on: longevity",
+  "concerns.risk": "Working on: understanding my risk",
+  "concerns.cancer_risk": "Working on: cancer risk",
+  "concerns.heart": "Working on: heart health",
+  "lifestyle.smoker": "Smoker",
+  "lifestyle.ex_smoker": "Former smoker",
+  "lifestyle.exercise": "Exercise",
+  "lifestyle.diet": "Diet",
+  "lifestyle.alcohol": "Alcohol",
+  "reproductive.pregnancy_status": "Pregnancy status",
+  "reproductive.menopause": "Menopause status",
+};
+
+// Human-readable label for a profile key, with a clean Title-Case fallback.
+function humanizeProfileKey(field: string): string {
+  if (PROFILE_LABELS[field]) return PROFILE_LABELS[field];
+  const last = field.includes(".") ? field.split(".").slice(-1)[0] : field;
+  return last
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+// Format a profile value so booleans and nested objects read nicely
+// instead of leaking `true` or stringified JSON. Returns null when the
+// label already carries the information and the value is redundant.
+function formatProfileValue(field: string, value: unknown): string | null {
+  if (value === true) {
+    // Label already names the fact. Showing "true" is noise.
+    return null;
+  }
+  if (value === false) {
+    return "no";
+  }
+  if (value === null || value === undefined) return "—";
+  if (typeof value === "number") {
+    if (field === "age") return `${value} years`;
+    return String(value);
+  }
+  if (typeof value === "string") return value;
+  if (typeof value === "object") {
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return String(value);
+    }
+  }
+  return String(value);
+}
+
 function humanizeKind(kind: string): string {
   if (SCREENING_LABELS[kind]) return SCREENING_LABELS[kind];
   return kind
@@ -255,27 +327,110 @@ function ProfileBody({
   return (
     <div className="space-y-2 px-5 py-4">
       {Object.keys(profile).length === 0 ? (
-        <p className="text-xs text-zinc-400">Nothing here yet.</p>
+        <p className="text-xs text-zinc-400">
+          Nothing here yet — talk to me and this fills in.
+        </p>
       ) : (
-        Object.entries(profile).map(([field, value]) => (
-          <div
-            key={field}
-            className={
-              "rounded-md border px-3 py-2 text-xs transition-colors " +
-              (recentlyChanged.has(field)
-                ? "border-emerald-300 bg-emerald-50"
-                : "border-zinc-200 bg-zinc-50")
-            }
-          >
-            <div className="text-[10px] font-medium uppercase tracking-wider text-zinc-500">
-              {field}
+        Object.entries(profile).map(([field, value]) => {
+          const label = humanizeProfileKey(field);
+          const displayValue = formatProfileValue(field, value);
+          return (
+            <div
+              key={field}
+              className={
+                "rounded-md border px-3 py-2 text-xs transition-colors " +
+                (recentlyChanged.has(field)
+                  ? "border-emerald-300 bg-emerald-50"
+                  : "border-zinc-200 bg-zinc-50")
+              }
+            >
+              <div className="text-[11px] font-medium text-zinc-900">
+                {label}
+              </div>
+              {displayValue !== null && (
+                <div className="mt-0.5 text-[12px] text-zinc-600">
+                  {displayValue}
+                </div>
+              )}
             </div>
-            <div className="mt-0.5 font-mono text-zinc-900">
-              {typeof value === "object" ? JSON.stringify(value) : String(value)}
-            </div>
-          </div>
-        ))
+          );
+        })
       )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// WelcomeCard — the cold-entry moment. Invites the judge (or any new user)
+// to try the companion with their own life, not a scripted Laura tour.
+// ---------------------------------------------------------------------------
+
+const WELCOME_EXAMPLES: { label: string; text: string }[] = [
+  {
+    label: "Sleep",
+    text: "I'm 38 and I want to sleep better.",
+  },
+  {
+    label: "Longevity",
+    text: "I'm 52 with my first grandkid coming. I want to stick around.",
+  },
+  {
+    label: "Lab result",
+    text: "I just got a weird lab result. Can I show it to you?",
+  },
+];
+
+function WelcomeCard({
+  onPickExample,
+}: {
+  onPickExample: (text: string) => void;
+}) {
+  return (
+    <div className="rounded-2xl border border-zinc-200 bg-white px-5 py-6 shadow-sm">
+      <div className="flex items-center gap-2">
+        <span
+          className="inline-flex h-9 w-9 items-center justify-center rounded-full"
+          style={{
+            background: "var(--hc-accent-50, #ecfdf5)",
+            color: "var(--hc-accent-700, #047857)",
+          }}
+          aria-hidden
+        >
+          <Heart className="h-4 w-4" strokeWidth={1.8} />
+        </span>
+        <div>
+          <h3 className="text-sm font-semibold tracking-tight text-zinc-900">
+            Welcome.
+          </h3>
+          <p className="text-[11px] text-zinc-500">Your Health Companion</p>
+        </div>
+      </div>
+      <p className="mt-3 text-[14.5px] leading-[1.55] text-zinc-800">
+        I&rsquo;m here to help you stay well — not to diagnose, not to
+        prescribe, and always to point you back to your doctor when
+        something matters.
+      </p>
+      <p className="mt-2 text-[14.5px] leading-[1.55] text-zinc-800">
+        Tell me a little about you. What&rsquo;s been on your mind?
+      </p>
+      <div className="mt-4 flex flex-wrap gap-2">
+        {WELCOME_EXAMPLES.map((ex) => (
+          <button
+            key={ex.label}
+            type="button"
+            onClick={() => onPickExample(ex.text)}
+            className="group inline-flex max-w-full items-start gap-2 rounded-2xl border border-zinc-200 bg-white px-3.5 py-2 text-left text-[13px] leading-snug text-zinc-700 transition hover:border-emerald-200 hover:bg-emerald-50/40 hover:text-zinc-900"
+          >
+            <span className="mt-0.5 inline-flex shrink-0 rounded-full border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-500 group-hover:border-emerald-200 group-hover:text-emerald-700">
+              {ex.label}
+            </span>
+            <span className="min-w-0 break-words">{ex.text}</span>
+          </button>
+        ))}
+      </div>
+      <p className="mt-4 font-mono text-[10.5px] uppercase tracking-[0.08em] text-zinc-400">
+        Tap an example to drop it in the composer — edit before you send.
+      </p>
     </div>
   );
 }
@@ -373,6 +528,34 @@ function ChatExperience() {
     router.replace("/login");
   }, [signOut, router]);
 
+  const handleStartFresh = useCallback(async () => {
+    try {
+      const token = await getAccessToken();
+      const headers: Record<string, string> = {};
+      if (token) headers.Authorization = `Bearer ${token}`;
+      await fetch(`${API_URL}/api/demo/reset`, {
+        method: "POST",
+        headers,
+      });
+    } catch {
+      // Even if the backend call fails we still clear the local view.
+    }
+    setMessages([]);
+    setProfile({});
+    setRecentlyChanged(new Set());
+    setScreenings([]);
+    setRecentlyAddedScreenings(new Set());
+    setBiomarkers([]);
+    setTrackingSeries({});
+    setTimeline([]);
+    setRecentlyAddedTimeline(new Set());
+    setReasoningActiveIndex(null);
+    setReasoningSheetMsg(null);
+    setError(null);
+    setInput("");
+    setFreshToast("Starting a fresh thread — nothing stored.");
+  }, []);
+
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [profile, setProfile] = useState<ProfileSnapshot>({});
   const [recentlyChanged, setRecentlyChanged] = useState<Set<string>>(new Set());
@@ -416,6 +599,13 @@ function ChatExperience() {
     null | "profile" | "screenings" | "timeline" | "upload"
   >(null);
   const [fadeActive, setFadeActive] = useState(false);
+  // Brief confirmation toast shown after "Start fresh" clears state.
+  const [freshToast, setFreshToast] = useState<string | null>(null);
+  useEffect(() => {
+    if (!freshToast) return;
+    const t = setTimeout(() => setFreshToast(null), 2400);
+    return () => clearTimeout(t);
+  }, [freshToast]);
   const [fadeLabel, setFadeLabel] = useState("3 months later");
   const simulatePendingRef = useRef<number | null>(null);
   const transcriptRef = useRef<HTMLDivElement | null>(null);
@@ -1036,6 +1226,16 @@ function ChatExperience() {
             >
               Trends
             </Link>
+            {(messages.length > 0 || Object.keys(profile).length > 0) && (
+              <button
+                type="button"
+                onClick={() => void handleStartFresh()}
+                className="hidden min-h-[32px] items-center rounded-full border border-dashed border-zinc-300 bg-white px-3 text-[11px] font-medium text-zinc-600 transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-800 md:inline-flex"
+                title="Clear everything and start a new thread"
+              >
+                Start fresh
+              </button>
+            )}
             <Link
               href="/how-this-works"
               className="hidden text-xs text-zinc-500 hover:text-zinc-900 md:inline"
@@ -1074,6 +1274,18 @@ function ChatExperience() {
         </div>
       </header>
 
+      {freshToast && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="pointer-events-none fixed left-1/2 top-20 z-50 -translate-x-1/2 transform"
+        >
+          <div className="rounded-full border border-emerald-200 bg-emerald-50 px-4 py-1.5 text-xs font-medium text-emerald-800 shadow-sm">
+            {freshToast}
+          </div>
+        </div>
+      )}
+
       <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 px-3 py-3 md:grid md:grid-cols-[1fr_340px] md:gap-6 md:px-6 md:py-6">
         {/* Chat surface */}
         <section className="flex min-h-0 flex-1 flex-col rounded-xl border border-zinc-200 bg-white shadow-sm md:h-[calc(100vh-160px)]">
@@ -1082,12 +1294,7 @@ function ChatExperience() {
             className="flex-1 space-y-5 overflow-y-auto px-4 py-4 md:px-6 md:py-5"
           >
             {messages.length === 0 && (
-              <div className="rounded-lg bg-zinc-50 px-4 py-6 text-sm text-zinc-500">
-                Say hi and tell me a little about yourself. Try:
-                <span className="mt-2 block font-mono text-xs text-zinc-600">
-                  &quot;I&apos;m 40, male, my dad had a heart attack at 60.&quot;
-                </span>
-              </div>
+              <WelcomeCard onPickExample={(text) => setInput(text)} />
             )}
             {messages.map((m, i) => {
               const hasReasoning =
@@ -1388,7 +1595,11 @@ function ChatExperience() {
               <input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Tell me more…"
+                placeholder={
+                  messages.length === 0
+                    ? "Tell me something about you. I'm listening."
+                    : "Tell me more…"
+                }
                 className="min-h-[36px] flex-1 border-0 bg-transparent p-0 text-[14px] text-foreground outline-none placeholder:text-muted-foreground"
                 disabled={busy}
                 autoFocus
@@ -1577,17 +1788,42 @@ function ChatSkeleton() {
   );
 }
 
+// Demo bypass — for a judge hitting `?demo=1` (or any build compiled with
+// NEXT_PUBLIC_DEMO_BYPASS_AUTH=true) we skip the Supabase session guard and
+// render ChatExperience immediately. Keeps the cold-entry experience truly
+// one-click and survives any future flakiness in the Supabase session
+// hand-off. No backend auth headers are forged — the chat endpoint is
+// tolerant of missing tokens in the demo-only deployment.
+function useDemoBypass(): boolean {
+  const [bypass, setBypass] = useState<boolean>(false);
+  useEffect(() => {
+    if (process.env.NEXT_PUBLIC_DEMO_BYPASS_AUTH === "true") {
+      setBypass(true);
+      return;
+    }
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("demo") === "1") setBypass(true);
+    } catch {
+      // noop
+    }
+  }, []);
+  return bypass;
+}
+
 export default function ChatPage() {
   const { session, loading } = useAuth();
   const router = useRouter();
+  const demoBypass = useDemoBypass();
 
   useEffect(() => {
+    if (demoBypass) return;
     if (!loading && !session) {
       router.replace("/login");
     }
-  }, [loading, session, router]);
+  }, [loading, session, router, demoBypass]);
 
-  if (loading || !session) {
+  if (!demoBypass && (loading || !session)) {
     return <ChatSkeleton />;
   }
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { CalendarDays, X } from "lucide-react";
 
 import type { ProactiveMessage } from "@/components/shared/types";
@@ -18,12 +19,9 @@ type Props = {
   firstName?: string | null;
   /** Dismiss affordance (the top-right X). */
   onClose?: () => void;
-  /** Optional handler for the primary action button. */
+  /** Optional handler for the primary action button. Defaults to an
+   *  honest inline toast — there is no calendar integration yet. */
   onPrimary?: () => void;
-  /** Optional handler for "Show me both clinics". */
-  onSecondary?: () => void;
-  /** Optional handler for "Not now". */
-  onDismiss?: () => void;
 };
 
 // Split the proactive text into 2–3 paragraphs. Prefer real line
@@ -64,46 +62,29 @@ function nowStamp(): string {
   return `${month} ${day} · ${hh}:${mm}`;
 }
 
-function MiniRow({
-  dot,
-  label,
-  val,
-}: {
-  dot: string;
-  label: string;
-  val: string;
-}) {
-  return (
-    <div className="flex items-center gap-2 py-1.5">
-      <span
-        aria-hidden
-        className="h-[7px] w-[7px] shrink-0 rounded-full"
-        style={{ background: dot }}
-      />
-      <span className="flex-1 text-[13px] text-zinc-900">{label}</span>
-      <span className="font-mono text-[11.5px] text-zinc-500">{val}</span>
-    </div>
-  );
-}
-
 export function ProactiveLetter({
   message,
   firstName,
   onClose,
   onPrimary,
-  onSecondary,
-  onDismiss,
 }: Props) {
   const name = (firstName ?? "").trim() || "friend";
   const paragraphs = splitBody(message.text ?? "");
 
+  // Inline toast state — we don't have real calendar integration yet, so
+  // the primary CTA surfaces an honest note instead of an alert().
+  const [toast, setToast] = useState<string | null>(null);
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
+
   const handlePrimary =
     onPrimary ??
     (() => {
-      // Placeholder — no real calendar integration in the MVP.
-      // eslint-disable-next-line no-alert
-      alert(
-        "Calendar integration is coming. For now, add this to your own calendar."
+      setToast(
+        "No calendar integration yet. Add this to your own calendar when you can.",
       );
     });
 
@@ -205,8 +186,11 @@ export function ProactiveLetter({
           </div>
         )}
 
-        {/* Actions */}
-        <div className="mt-[18px] flex flex-col gap-2">
+        {/* Primary action — the only button on the letter. No secondary
+            or dismiss rails; both used to ship as dead copy ("both
+            clinics" / "not now") that had no real handlers. The honest
+            path is one CTA the user can take right now. */}
+        <div className="mt-[18px]">
           <button
             type="button"
             onClick={handlePrimary}
@@ -215,44 +199,20 @@ export function ProactiveLetter({
             <CalendarDays className="h-4 w-4" aria-hidden />
             {nextStep}
           </button>
-          <button
-            type="button"
-            onClick={onSecondary}
-            className="inline-flex min-h-[44px] w-full items-center justify-center rounded-full border border-zinc-300 bg-white px-5 text-[14px] font-medium text-zinc-700 transition hover:bg-zinc-50"
-          >
-            Show me both clinics
-          </button>
-          <button
-            type="button"
-            onClick={onDismiss}
-            className="self-center rounded-md px-3 py-1 text-[12.5px] font-medium text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-700"
-          >
-            Not now
-          </button>
-        </div>
-
-        {/* Divider + "While we were quiet" recap */}
-        <div className="mt-5 border-t border-zinc-200 pt-4">
-          <div className="mb-2 text-[10.5px] font-semibold uppercase tracking-[0.06em] text-zinc-500">
-            While we were quiet
-          </div>
-          <div className="flex flex-col">
-            <MiniRow
-              dot="var(--hc-accent-600)"
-              label="Walking plan"
-              val="4 of 5 days · most weeks"
-            />
-            <MiniRow
-              dot="#2563eb"
-              label="Glucose re-check"
-              val="108 mg/dL · down from 118"
-            />
-            <MiniRow
-              dot="#d97706"
-              label="Two check-ins"
-              val="April 30 · May 22"
-            />
-          </div>
+          {toast && (
+            <div
+              role="status"
+              aria-live="polite"
+              className="mt-2 rounded-xl border px-3.5 py-2 text-[12.5px]"
+              style={{
+                background: "var(--hc-amber-bg)",
+                borderColor: "var(--hc-amber-border)",
+                color: "var(--hc-amber-fg)",
+              }}
+            >
+              {toast}
+            </div>
+          )}
         </div>
       </div>
     </div>

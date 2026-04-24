@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from api import __version__
 from api.config import get_settings
-from api.routers import chat, health, labs, simulate, simulate_managed, trends
+from api.routers import chat, demo, health, labs, simulate, simulate_managed, trends
 
 
 @asynccontextmanager
@@ -37,6 +37,7 @@ def create_app() -> FastAPI:
     app.include_router(simulate.router)
     app.include_router(simulate_managed.router)
     app.include_router(trends.router)
+    app.include_router(demo.router)
     return app
 
 

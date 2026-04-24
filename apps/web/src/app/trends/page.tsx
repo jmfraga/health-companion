@@ -129,17 +129,23 @@ export default function TrendsPage() {
 
       {isEmpty && (
         <div className="rounded-2xl border border-dashed border-zinc-300 bg-white p-10 text-center">
-          <p className="mx-auto max-w-sm text-sm text-zinc-600">
-            No parameters yet. Tell me about a lab result or a reading in the
-            chat, or load the Laura demo arc to see how this page fills in.
+          <p className="mx-auto max-w-lg text-sm leading-relaxed text-zinc-700">
+            No trends yet. Share a reading with me in chat &mdash; something
+            like <span className="font-mono text-zinc-900">&ldquo;my blood
+            pressure this morning was 128 over 82&rdquo;</span> &mdash; and a
+            line starts here. Upload a lab PDF and we track everything that
+            comes out of it.
+          </p>
+          <p className="mx-auto mt-3 max-w-md text-xs text-zinc-500">
+            Want to see what three months of data looks like on a real arc?
           </p>
           <button
             type="button"
             onClick={seedDemo}
             disabled={seeding}
-            className="mt-5 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.08em] text-emerald-700 transition hover:bg-emerald-100 disabled:opacity-60"
+            className="mt-4 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.08em] text-emerald-700 transition hover:bg-emerald-100 disabled:opacity-60"
           >
-            {seeding ? "Loading fixture…" : "Load Laura demo arc"}
+            {seeding ? "Loading fixture…" : "Load the Laura demo arc"}
           </button>
         </div>
       )}
