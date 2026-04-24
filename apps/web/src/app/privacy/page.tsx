@@ -176,8 +176,7 @@ export default function PrivacyPage() {
                 className="font-medium text-zinc-900 underline underline-offset-4 hover:text-zinc-700"
               >
                 privacy@healthcompanion.app
-              </a>{" "}
-              (placeholder).
+              </a>.
             </p>
           </Section>
         </article>

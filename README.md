@@ -9,14 +9,39 @@ years, available to everyone.
 
 ## Status
 
-Work-in-progress submission for the **Built with Opus 4.7** hackathon
-(April 21–26, 2026). Not production-ready. Not a medical device. Does not
-provide medical advice, diagnosis, or treatment. The recorded walk-
-through uses a synthetic patient throughout; judges are welcome to
-interact with their own information knowing this is a demo environment,
-not a clinical-grade tool — the Phase-1 work to reach that bar (BAA,
-per-user encryption, consent flows, audit controls) is scoped in
-[`docs/product-horizon.md`](./docs/product-horizon.md).
+**Last updated:** 2026-04-24 (Friday night, deploy day).
+
+Submission for the **Built with Opus 4.7** hackathon (April 21–26, 2026).
+Submission deadline: Sunday, 2026-04-26 at 7:00 PM CDMX.
+
+**Live URLs:**
+
+- **App** → [`https://health-companion-five.vercel.app`](https://health-companion-five.vercel.app) (add `?demo=1` to skip auth).
+- **API** → [`https://hc-companion-api.fly.dev`](https://hc-companion-api.fly.dev) (`/health`, `/api/demo/reset`, `/api/trends/seed-demo` all live).
+
+What's working today: cold-open chat with welcome card and example
+chips · streaming Opus 4.7 with visible tool-use animation · live
+profile panel · screening calendar with guideline citations · opt-in
+"See reasoning" disclosure · multimodal lab ingestion (PDF or photo) ·
+"3 months later" simulation with the proactive letter · `/trends`
+longitudinal chart view (with one-click demo-arc seeder) · `/bridge`
+clinician-side preview (Phase-2 vision, not functional) · `/privacy` ·
+`/how-this-works` · persistent emergency affordance with region-specific
+numbers.
+
+The roadmap — sprints already shipped, what's left before the Sunday
+submit, and Phase 1 onward — lives in [`ROADMAP.md`](./ROADMAP.md).
+
+Not production-ready. Not a medical device. Does not provide medical
+advice, diagnosis, or treatment. State is in-memory and resets on
+restart; there's no per-user data layer yet, no BAA, no production
+encryption guarantees. The recorded walk-through uses a synthetic
+patient throughout; judges are welcome to interact with their own
+information knowing this is a demo environment, not a clinical-grade
+tool — the Phase-1 work to reach that bar (BAA, per-user encryption,
+consent flows, audit controls) is scoped in
+[`docs/product-horizon.md`](./docs/product-horizon.md) and
+[`ROADMAP.md`](./ROADMAP.md) §B.
 
 ## Three users, one product
 
@@ -40,16 +65,25 @@ lives at [`docs/assets/three-users.html`](./docs/assets/three-users.html).
 
 ## Try it
 
-Open the app, say hello, and tell it something about you — your age, a
-health goal, a lab result you don't fully understand. The profile panel
-fills in as you talk; the timeline builds as facts accumulate; every
-screening recommendation cites the guideline it comes from and can be
-audited via the opt-in **See reasoning** disclosure. Three example prompts
-are one click away on the empty state for a faster first-touch.
+Easiest path: open
+[`https://health-companion-five.vercel.app/?demo=1`](https://health-companion-five.vercel.app/?demo=1)
+in any modern browser. The `?demo=1` flag skips authentication so you
+land directly in the chat.
+
+Say hello, and tell it something about you — your age, a health goal, a
+lab result you don't fully understand. The profile panel fills in as
+you talk; the timeline builds as facts accumulate; every screening
+recommendation cites the guideline it comes from and can be audited via
+the opt-in **See reasoning** disclosure (toggle it on at `/settings`).
+Three example prompts are one click away on the empty state for a
+faster first-touch.
 
 If you want to see what three months of data looks like on a real arc,
 `/trends` ships a one-click fixture (the "demo arc") so the longitudinal
 surface isn't empty on a cold open.
+
+To run locally instead, see
+[Run locally](#run-locally) at the bottom of this README.
 
 ## Recorded walk-through (hackathon demo video)
 
@@ -171,6 +205,50 @@ tech enthusiast — is the fifth agent on the team. His role is to translate
 the experience he cultivates with his own patients into something
 replicable in software. *We're building the companion by the same pattern
 we want the companion to have: a coordinator working with specialists.*
+
+## Run locally
+
+You need: Node.js 20+, Python 3.12+, [`uv`](https://docs.astral.sh/uv/),
+an Anthropic API key, and (optionally) a Supabase project. Auth can be
+bypassed entirely with `NEXT_PUBLIC_DEMO_BYPASS_AUTH=true`, so you
+don't strictly need Supabase to try the product locally.
+
+```bash
+git clone https://github.com/jmfraga/health-companion.git
+cd health-companion
+cp .env.example .env  # then edit and set ANTHROPIC_API_KEY
+```
+
+Backend (terminal 1):
+
+```bash
+cd apps/api
+uv sync
+uv run uvicorn api.main:app --reload --port 8000
+# verify: curl http://localhost:8000/health
+```
+
+Frontend (terminal 2):
+
+```bash
+cd apps/web
+npm install
+# minimum local env: point to the local API and bypass auth
+echo "NEXT_PUBLIC_API_URL=http://localhost:8000" > .env.local
+echo "NEXT_PUBLIC_DEMO_BYPASS_AUTH=true" >> .env.local
+npm run dev
+# open http://localhost:3000
+```
+
+Reset state and seed the LDL demo arc in one command:
+
+```bash
+bash scripts/demo-preflight.sh
+# or against production:
+HC_API_URL=https://hc-companion-api.fly.dev bash scripts/demo-preflight.sh
+```
+
+The deploy playbook for Fly.io + Vercel is in [`DEPLOY.md`](./DEPLOY.md).
 
 ## Disclaimer
 

@@ -16,11 +16,15 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
 
 WORKDIR /app
 
-# Install deps first, then source, so the dep layer caches.
+# Install deps first (without building the project itself) so the dep
+# layer caches across source changes. Then copy source and install the
+# project. pyproject.toml uses uv_build as the backend, which expects
+# src/api/__init__.py to exist — that's only true after the src copy.
 COPY pyproject.toml uv.lock ./
-RUN uv sync --frozen --no-dev
+RUN uv sync --frozen --no-dev --no-install-project
 
 COPY src ./src
+RUN uv sync --frozen --no-dev
 
 ENV PATH="/app/.venv/bin:$PATH" \
     PORT=8080

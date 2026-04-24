@@ -43,9 +43,15 @@ async def chat(request: ChatRequest) -> StreamingResponse:
     async def event_stream():
         try:
             async for event in run_chat_turn(anthropic_messages):
+                # run_chat_turn emits {"type": "done"} as its final event on the
+                # happy path. We forward every event including that done, then
+                # emit the snapshots, then emit a second done as a safety net so
+                # the client always receives done as the last event in the stream
+                # regardless of which path the runner took.
                 yield _format_sse(event)
         except Exception as exc:
             yield _format_sse({"type": "error", "message": str(exc)})
+            yield _format_sse({"type": "done"})
             return
         # Full snapshot at turn close so the UI can reconcile regardless of
         # which tool_use events it missed.
@@ -54,6 +60,11 @@ async def chat(request: ChatRequest) -> StreamingResponse:
         yield _format_sse({"type": "biomarkers_snapshot", "biomarkers": get_biomarkers()})
         yield _format_sse({"type": "timeline_snapshot", "timeline": get_timeline()})
         yield _format_sse({"type": "memory_snapshot", "memory": get_memory()})
+        # Safety-net done: guarantees done is always the last event in the
+        # stream. The runner already emits done before returning, but that
+        # arrives before the snapshots above. This second done is what the
+        # client should treat as the true end-of-stream sentinel.
+        yield _format_sse({"type": "done"})
 
     return StreamingResponse(
         event_stream(),

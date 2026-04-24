@@ -370,6 +370,16 @@ export default function BridgePage() {
       </header>
 
       <div className="mx-auto max-w-6xl px-5 py-8 md:px-8 md:py-10">
+        {/* Preview-only advisory — this surface ships with the clinical product, not the patient app */}
+        <div className="mb-6 flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] leading-relaxed text-amber-900">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" strokeWidth={1.8} aria-hidden />
+          <p>
+            <span className="font-semibold">Preview only.</span>{" "}
+            This section will only be available in the clinical (clinician-facing)
+            version of Health Companion. It will not ship in the patient app.
+          </p>
+        </div>
+
         {/* Intro */}
         <div className="mb-8 flex items-start gap-3">
           <span

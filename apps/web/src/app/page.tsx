@@ -4,12 +4,15 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
+  Activity,
   Heart,
+  Menu,
   Paperclip,
   Send,
   ShieldCheck,
   Sparkles,
   User,
+  X,
 } from "lucide-react";
 
 import { useAuth } from "@/lib/auth-context";
@@ -361,6 +364,77 @@ function ProfileBody({
 }
 
 // ---------------------------------------------------------------------------
+// HabitsBlock — lifestyle / habits / concerns section for the profile panel.
+// Only renders when at least one relevant field is populated.
+// ---------------------------------------------------------------------------
+
+const HABITS_FIELDS = new Set([
+  "lifestyle.smoker",
+  "lifestyle.ex_smoker",
+  "lifestyle.exercise",
+  "lifestyle.diet",
+  "lifestyle.alcohol",
+  "lifestyle.tobacco",
+  "concerns.sleep",
+  "concerns.weight",
+  "concerns.longevity",
+  "concerns.stress",
+  "concerns.risk",
+  "concerns.cancer_risk",
+  "concerns.heart",
+]);
+
+function HabitsBlock({
+  profile,
+  recentlyChanged,
+}: {
+  profile: ProfileSnapshot;
+  recentlyChanged: Set<string>;
+}) {
+  const entries = Object.entries(profile).filter(([field, value]) => {
+    if (!HABITS_FIELDS.has(field)) return false;
+    if (value === false || value === null || value === undefined || value === "") return false;
+    return true;
+  });
+
+  if (entries.length === 0) return null;
+
+  return (
+    <div className="flex flex-col rounded-xl border border-zinc-200 bg-white shadow-sm">
+      <div className="border-b border-zinc-200 px-5 py-4">
+        <div className="flex items-center gap-2">
+          <Activity className="h-4 w-4 text-zinc-500" aria-hidden />
+          <h2 className="text-sm font-semibold">Habits in follow-up</h2>
+        </div>
+        <p className="mt-0.5 text-xs text-zinc-500">Lifestyle context your companion is tracking.</p>
+      </div>
+      <div className="space-y-2 px-5 py-4">
+        {entries.map(([field, value]) => {
+          const label = humanizeProfileKey(field);
+          const displayValue = formatProfileValue(field, value);
+          return (
+            <div
+              key={field}
+              className={
+                "rounded-md border px-3 py-2 text-xs transition-colors " +
+                (recentlyChanged.has(field)
+                  ? "border-emerald-300 bg-emerald-50"
+                  : "border-zinc-200 bg-zinc-50")
+              }
+            >
+              <div className="text-[11px] font-medium text-zinc-900">{label}</div>
+              {displayValue !== null && (
+                <div className="mt-0.5 text-[12px] text-zinc-600">{displayValue}</div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // WelcomeCard — the cold-entry moment. Invites the judge (or any new user)
 // to try the companion with their own life, not a scripted Laura tour.
 // ---------------------------------------------------------------------------
@@ -375,8 +449,8 @@ const WELCOME_EXAMPLES: { label: string; text: string }[] = [
     text: "I'm 52 with my first grandkid coming. I want to stick around.",
   },
   {
-    label: "Lab result",
-    text: "I just got a weird lab result. Can I show it to you?",
+    label: "Smartwatch",
+    text: "Here's a photo of my Apple Watch screen — help me read it.",
   },
 ];
 
@@ -419,6 +493,7 @@ function WelcomeCard({
             key={ex.label}
             type="button"
             onClick={() => onPickExample(ex.text)}
+            aria-label={ex.text}
             className="group inline-flex max-w-full items-start gap-2 rounded-2xl border border-zinc-200 bg-white px-3.5 py-2 text-left text-[13px] leading-snug text-zinc-700 transition hover:border-emerald-200 hover:bg-emerald-50/40 hover:text-zinc-900"
           >
             <span className="mt-0.5 inline-flex shrink-0 rounded-full border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-500 group-hover:border-emerald-200 group-hover:text-emerald-700">
@@ -607,6 +682,8 @@ function ChatExperience() {
     return () => clearTimeout(t);
   }, [freshToast]);
   const [fadeLabel, setFadeLabel] = useState("3 months later");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const mobileMenuRef = useRef<HTMLDivElement | null>(null);
   const simulatePendingRef = useRef<number | null>(null);
   const transcriptRef = useRef<HTMLDivElement | null>(null);
 
@@ -616,6 +693,28 @@ function ChatExperience() {
       behavior: "smooth",
     });
   }, [messages]);
+
+  // Close mobile menu on click-outside or Escape
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+    const handlePointerDown = (e: PointerEvent) => {
+      if (
+        mobileMenuRef.current &&
+        !mobileMenuRef.current.contains(e.target as Node)
+      ) {
+        setMobileMenuOpen(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMobileMenuOpen(false);
+    };
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [mobileMenuOpen]);
 
   // Hydrate every right-column widget on mount so a page reload does not
   // wipe the user's accumulated state — the backend still has it, the UI
@@ -1184,15 +1283,15 @@ function ChatExperience() {
     >
       <header className="shrink-0 border-b border-zinc-200 bg-white">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 md:px-6 md:py-4">
-          <div className="min-w-0">
-            <h1 className="truncate text-lg font-semibold tracking-tight md:text-xl">
+          <div className="min-w-0 flex-1">
+            <h1 className="text-base font-semibold leading-tight tracking-tight md:truncate md:text-xl">
               Health Companion
             </h1>
             <p className="hidden text-xs text-zinc-500 sm:block">
               Wellness, not a medical device. Never diagnoses, never prescribes,
               always refers to your doctor.
             </p>
-            <p className="text-[11px] text-zinc-500 sm:hidden">
+            <p className="mt-0.5 text-[10.5px] leading-tight text-zinc-500 sm:hidden">
               Wellness, not a medical device.
             </p>
           </div>
@@ -1220,6 +1319,96 @@ function ChatExperience() {
               <span className="hidden sm:inline">Simulate: 3 months later</span>
               <span className="sm:hidden">+3 months</span>
             </button>
+
+            {/* Hamburger — mobile only */}
+            <div ref={mobileMenuRef} className="relative md:hidden">
+              <button
+                type="button"
+                onClick={() => setMobileMenuOpen((o) => !o)}
+                aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+                aria-expanded={mobileMenuOpen}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-600 transition hover:bg-zinc-50 active:bg-zinc-100"
+              >
+                {mobileMenuOpen ? (
+                  <X className="h-4 w-4" aria-hidden />
+                ) : (
+                  <Menu className="h-4 w-4" aria-hidden />
+                )}
+              </button>
+
+              {mobileMenuOpen && (
+                <div
+                  role="menu"
+                  className="absolute right-0 top-full z-50 mt-2 w-52 rounded-xl border border-zinc-200 bg-white py-1 shadow-lg"
+                >
+                  <Link
+                    href="/trends"
+                    role="menuitem"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="block px-4 py-2.5 text-sm text-zinc-700 hover:bg-zinc-50"
+                  >
+                    Trends
+                  </Link>
+                  <Link
+                    href="/bridge"
+                    role="menuitem"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="block px-4 py-2.5 text-sm text-zinc-700 hover:bg-zinc-50"
+                    title="Preview of the clinician-facing surface"
+                  >
+                    The Bridge
+                  </Link>
+                  {(messages.length > 0 || Object.keys(profile).length > 0) && (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        void handleStartFresh();
+                      }}
+                      className="block w-full px-4 py-2.5 text-left text-sm text-zinc-700 hover:bg-zinc-50"
+                    >
+                      Start fresh
+                    </button>
+                  )}
+                  <Link
+                    href="/how-this-works"
+                    role="menuitem"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="block px-4 py-2.5 text-sm text-zinc-700 hover:bg-zinc-50"
+                  >
+                    How this works
+                  </Link>
+                  <Link
+                    href="/privacy"
+                    role="menuitem"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="block px-4 py-2.5 text-sm text-zinc-700 hover:bg-zinc-50"
+                  >
+                    Your privacy
+                  </Link>
+                  <Link
+                    href="/settings"
+                    role="menuitem"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="block px-4 py-2.5 text-sm text-zinc-700 hover:bg-zinc-50"
+                  >
+                    Settings
+                  </Link>
+                  {user?.email && (
+                    <div className="border-t border-zinc-100 px-4 py-2.5">
+                      <p
+                        className="truncate text-xs text-zinc-400"
+                        title={user.email}
+                      >
+                        {user.email}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
             <Link
               href="/trends"
               className="hidden text-xs text-zinc-500 hover:text-zinc-900 md:inline"
@@ -1238,6 +1427,7 @@ function ChatExperience() {
                 type="button"
                 onClick={() => void handleStartFresh()}
                 className="hidden min-h-[32px] items-center rounded-full border border-dashed border-zinc-300 bg-white px-3 text-[11px] font-medium text-zinc-600 transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-800 md:inline-flex"
+                aria-label="Reset demo state"
                 title="Clear everything and start a new thread"
               >
                 Start fresh
@@ -1377,6 +1567,7 @@ function ChatExperience() {
                       <button
                         type="button"
                         onClick={() => openReasoning(m)}
+                        aria-label="Show clinical reasoning"
                         className="inline-flex min-h-[28px] items-center gap-1 px-0 text-[12px] font-medium transition-colors hover:underline"
                         style={{ color: "var(--hc-amber-fg)" }}
                       >
@@ -1480,6 +1671,7 @@ function ChatExperience() {
                       <button
                         type="button"
                         onClick={() => openReasoning(m)}
+                        aria-label="Show clinical reasoning"
                         className="inline-flex min-h-[28px] items-center gap-1 px-1 text-[12px] font-medium transition-colors hover:underline"
                         style={{ color: "var(--hc-accent-700)" }}
                       >
@@ -1643,6 +1835,7 @@ function ChatExperience() {
             screenings={screenings}
             recentlyAdded={recentlyAddedScreenings}
           />
+          <HabitsBlock profile={profile} recentlyChanged={recentlyChanged} />
           <div className="flex flex-col rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
             <LabDropZone
               note={input}
@@ -1670,6 +1863,7 @@ function ChatExperience() {
         <div className="px-5 pb-4">
           <BiomarkerTrackingList series={trackingSeries} />
         </div>
+        <HabitsBlock profile={profile} recentlyChanged={recentlyChanged} />
       </BottomSheet>
       <BottomSheet
         open={sheet === "screenings"}

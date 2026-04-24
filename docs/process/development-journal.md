@@ -1222,3 +1222,66 @@ First morning check: open `http://100.72.169.113:3000` in a **new incognito wind
 If hydration is silently swallowed, temporary unblock: move the page content to a Server Component wrapper that shows the new UI unconditionally while debugging the auth guard.
 
 Juan Manuel tried to upload the same lab PDF a second time after the first 400 bug and the drop zone would not respond. Likely the browser `<input type="file">` does not fire `change` when the selected filename matches the prior one. Quick fix when we revisit the drop zone: clear `inputRef.current.value = ""` after each upload attempt so the same file can be picked again. Captured here; will apply when we next touch `LabDropZone`.
+
+---
+
+### Production deploy landed (Apr 24 night)
+
+The Friday deploy window worked. The submission has a real URL.
+
+**Backend** — Fly.io, app `hc-companion-api`, region `sjc`, single
+always-warm machine (`min_machines_running=1`,
+`auto_stop_machines=suspend` so an idle period doesn't cost token
+budget but a judge never hits a cold start). Live at
+**https://hc-companion-api.fly.dev**. Smoke-tested:
+
+- `GET /health` → 200.
+- `POST /api/demo/reset` → 200, all five in-memory stores cleared.
+- `POST /api/trends/seed-demo` → 200, the six-point LDL arc lands.
+- CORS wired explicitly to the Vercel origin. `ANTHROPIC_API_KEY` is
+  Fly-only, never exposed to the browser.
+
+**Frontend** — Vercel, app `health-companion`, single environment
+(production). Live at **https://health-companion-five.vercel.app**.
+Five env vars set in production:
+
+- `NEXT_PUBLIC_API_URL=https://hc-companion-api.fly.dev`
+- `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+- `NEXT_PUBLIC_SUPABASE_JWKS_URL`
+- `NEXT_PUBLIC_DEMO_BYPASS_AUTH=true` for the friction-free judge URL.
+
+Deploy READY. The `?demo=1` shortcut works: open
+`/?demo=1` and you skip the auth screen.
+
+**Bridge advisory banner** — added the *"Preview only — this section
+will only be available in the clinical (clinician-facing) version of
+Health Companion. It will not ship in the patient app."* amber strip at
+the top of `/bridge`. Honesty before any judge clicks through. Already
+deployed to production.
+
+**Hans first-look** — `docs/process/hans-first-look.md` updated with
+the live URL inline. Pasted to him over WhatsApp — voice notes
+welcome, no formal review needed. The point is an outside read before
+Sunday closes the window.
+
+**Repo hygiene** — `.deploy-fly-secrets.sh` and any `.deploy-*.sh`
+helpers (which carry plaintext secrets for first-time setup) are now
+gitignored. The deploy playbook in `DEPLOY.md` documents the
+secrets-injection step without the secrets ever landing on disk in a
+trackable file.
+
+**What's left**: Saturday morning is the clinical audit (~30 min on
+the row-by-row checklist), Saturday afternoon is the Loom recording
+(target take in the can by 5 PM so the 50th-birthday party at night
+is uninterrupted), Sunday morning is the buffer for whatever needs a
+re-record or a hot fix, Sunday afternoon is the submit (target 5 PM
+CDMX, hard cap 7 PM). The full sprint plan with owners and cut
+criteria is in `ROADMAP.md` §B.
+
+Quotable for the post-submission story:
+
+> *"The deploy window is the last engineering surface; the take is
+> the only one the judges see. The job between them is to make sure
+> the take faithfully shows what the deploy makes possible."*
+
+---

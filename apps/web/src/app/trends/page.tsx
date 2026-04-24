@@ -56,6 +56,7 @@ export default function TrendsPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [seeding, setSeeding] = useState<boolean>(false);
+  const [seedError, setSeedError] = useState<string | null>(null);
 
   async function load() {
     setLoading(true);
@@ -75,8 +76,13 @@ export default function TrendsPage() {
   async function seedDemo() {
     setSeeding(true);
     try {
-      await fetch(`${API_URL}/api/trends/seed-demo`, { method: "POST" });
+      const res = await fetch(`${API_URL}/api/trends/seed-demo`, {
+        method: "POST",
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       await load();
+    } catch {
+      setSeedError("Could not seed demo — check connection");
     } finally {
       setSeeding(false);
     }
@@ -141,12 +147,15 @@ export default function TrendsPage() {
           </p>
           <button
             type="button"
-            onClick={seedDemo}
+            onClick={() => { setSeedError(null); void seedDemo(); }}
             disabled={seeding}
             className="mt-4 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.08em] text-emerald-700 transition hover:bg-emerald-100 disabled:opacity-60"
           >
             {seeding ? "Loading fixture…" : "Load the demo arc"}
           </button>
+          {seedError && (
+            <p className="mt-2 text-xs text-red-600">{seedError}</p>
+          )}
         </div>
       )}
 

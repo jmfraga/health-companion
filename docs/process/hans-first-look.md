@@ -6,7 +6,7 @@
 
 ---
 
-Hans — this is the thing I've been building this week with Claude Opus 4.7. Public URL here: **[TODO · paste Fly/Vercel URL when deploy lands]** · add `?demo=1` so you skip the login.
+Hans — this is the thing I've been building this week with Claude Opus 4.7. Public URL here: **https://health-companion-five.vercel.app** · add `?demo=1` so you skip the login.
 
 It's a demo. The state is in-memory (resets when the server restarts), there's no real per-user data layer yet, and we haven't signed a BAA with Anthropic — so don't paste anything you wouldn't say out loud in a café. But the product shape is real, and I want your eyes on it before Sunday's submission.
 
@@ -16,7 +16,7 @@ It's a demo. The state is in-memory (resets when the server restarts), there's n
 
 2. **Tell it something real about you.** Not Hans-from-the-app-demo — real you. A goal, a worry, a number you've been tracking. Let the profile panel fill in on the right as you type. See if the keys it captures match how you'd actually describe yourself.
 
-3. **Upload a lab.** Either your own anonymized panel, or grab `fixtures/labs-laura-demo.pdf` from the repo — doesn't matter. Watch the four reading phases animate and then read what the companion says back. Pay attention to which findings it names and how it frames them.
+3. **Share something readable.** Either your own anonymized lab PDF, or grab `fixtures/labs-laura-demo.pdf` from the repo. If you have a smartwatch, a blood pressure cuff, or any health device with a screen, try snapping a photo of it and dropping it in the same zone — same ingestion path. Watch the four reading phases animate and then read what the companion says back. Pay attention to which findings it names and how it frames them.
 
 4. **"See reasoning."** First, flip the toggle at `/settings` → "Show reasoning in conversations." Then scroll up to any companion response that has clinical content and click the "See reasoning" link. Tell me whether what you read feels like a clinical note from a friend who knows health, or like something else.
 
@@ -38,6 +38,9 @@ It's a demo. The state is in-memory (resets when the server restarts), there's n
 - Produce a diagnosis, a prescription, or anything that could be mistaken for clinical advice.
 - Talk in voice. Voice I/O is a post-hackathon thread.
 - Cover the full range of conditions — preventive screening and labs are where the depth lives today; chronic-disease management and mental-health surfaces are in the roadmap.
+- Track vaccines / immunizations as a dedicated surface — currently captured in conversation if you mention them, but the structured section (CDC ACIP / SSA-MX schedules) lands in Phase 1.
+- Let you upload a profile photo. The avatar is initials-only for the demo — persistent per-user storage arrives with the Phase-1 Supabase migration.
+- Connect to your health apps — Apple Health, Google Fit, your wearable, your pharmacy. Today the product accepts words, documents (lab PDFs, reports), and photos of device screens; direct app integrations are Phase 1+.
 - Guarantee privacy or data portability. The Phase-1 architecture is scoped in `docs/product-horizon.md`, but today it's a demo.
 
 ## How to report back

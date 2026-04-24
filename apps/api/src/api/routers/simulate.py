@@ -49,7 +49,7 @@ from api.config import get_settings
 router = APIRouter(prefix="/api", tags=["simulate"])
 
 
-MAX_TOKENS = 4096
+MAX_TOKENS = 8192
 THINKING_EFFORT = "max"
 
 

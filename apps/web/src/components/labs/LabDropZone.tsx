@@ -453,9 +453,9 @@ export function LabDropZone({
     <div className={className}>
       {!compact && !showReadingState && !showFindingState && (
         <div className="mb-2 px-1">
-          <h3 className="text-sm font-semibold text-zinc-900">Upload lab PDF</h3>
+          <h3 className="text-sm font-semibold text-zinc-900">Share anything with a reading</h3>
           <p className="text-xs text-zinc-500">
-            Drop a report and your companion will read it with you.
+            Lab PDF · photo of a smartwatch, blood pressure cuff, prescription label — anything readable.
           </p>
         </div>
       )}
@@ -497,7 +497,7 @@ export function LabDropZone({
         <div
           role="button"
           tabIndex={0}
-          aria-label="Drop a PDF or click to browse"
+          aria-label="Drop a file or photo, or click to browse"
           aria-busy={busy}
           onClick={onBrowse}
           onKeyDown={(e) => {
@@ -548,10 +548,10 @@ export function LabDropZone({
           ) : (
             <>
               <div className="text-sm font-medium text-zinc-700">
-                Drop a PDF here
+                Drop a file or photo here
               </div>
               <div className="text-xs text-zinc-500">
-                or tap to choose a file
+                or tap to choose
               </div>
             </>
           )}

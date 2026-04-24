@@ -401,7 +401,21 @@ async def simulate_months_later_managed(
             yield _format_sse({"type": "done"})
 
         except Exception as exc:
-            logger.exception("simulate-months-later-managed failed")
+            # Cache-miss / dry-run errors (RuntimeError from managed.py when
+            # HC_SKIP_MANAGED_AGENTS_CREATE is set and no cached IDs exist) are
+            # expected in environments where the Managed Agent has not been
+            # provisioned yet. Log at WARNING so Fly logs stay clean. Any other
+            # exception — SDK errors, network timeouts, etc. — gets the full
+            # stack trace at ERROR so we catch real regressions.
+            exc_str = str(exc)
+            is_expected_miss = isinstance(exc, RuntimeError) and (
+                "HC_SKIP_MANAGED_AGENTS_CREATE" in exc_str
+                or "no cached" in exc_str
+            )
+            if is_expected_miss:
+                logger.warning("simulate-months-later-managed: %s", exc_str)
+            else:
+                logger.exception("simulate-months-later-managed failed")
             if reasoning_open_flag[0]:
                 yield _format_sse({"type": "reasoning_stop"})
             yield _format_sse({"type": "error", "message": str(exc)})
