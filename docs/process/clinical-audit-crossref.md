@@ -17,6 +17,18 @@
 >
 > Source of truth: `runner.py` SYSTEM_PROMPT (version header `2026-04-21`,
 > last materially edited 2026-04-23 for Laura-priming purge).
+>
+> **Last line-number refresh: 2026-04-24** — after the priming purge
+> and the subsequent edits, every line-number citation below was
+> re-verified against the current file. The only substantive change
+> from the previous revision of this cross-ref is that the former
+> "Laura case" example in §7 (lines 269-273 in the old prompt) has
+> been replaced by two neutral examples (58 y/o first-time borderline
+> BP · 32 y/o sleep) now living at lines 283-293, plus a hard rule at
+> lines 297-303 that reasoning must follow from what the user has
+> actually told you. The §7 row below is the only one whose verdict
+> depends on how Juan Manuel wants to resolve the question — see the
+> pre-flagged priority list at the bottom.
 
 ---
 
@@ -95,8 +107,8 @@ This is where the checklist calls out that the risk lives. Every row below needs
 
 | Row | Verdict | What prompt says |
 |---|---|---|
-| "Reasoning reads like a clinical note, not a stream of consciousness" | ✅ | Line 267-269 verbatim substance. |
-| Laura-case example walkthrough — verify NCCN "10 years earlier" line matches how you'd narrate it to a colleague | ⚠️ | **The Laura example was removed from §7 on 2026-04-23** to kill priming (see `d07765f` commit). §7 now shows two neutral examples (58 y/o BP, 32 y/o sleep) and explicitly says the reasoning must follow from what the user actually told you. 👤 **Decision:** do you want a cancer-history example added back under a clear "illustrative only — do not copy the specifics" disclaimer, so the model has a shape for hereditary-risk reasoning? Or keep §7 disease-agnostic and rely on the guideline table for NCCN specifics? |
+| "Reasoning reads like a clinical note, not a stream of consciousness" | ✅ | Lines 266-269 verbatim substance. |
+| Laura-case example walkthrough — verify NCCN "10 years earlier" line matches how you'd narrate it to a colleague | ⚠️ | **The Laura example was removed from §7 on 2026-04-23** to kill priming (see `d07765f` commit). §7 now shows two neutral examples at lines **283-293** (58 y/o BP · 32 y/o sleep) and lines **297-303** add an explicit guardrail: *"the reasoning must follow from what the user has actually told you in this conversation. Do not import assumptions from the examples above."* 👤 **Decision:** do you want a cancer-history example added back under a clear *"illustrative only — do not copy the specifics"* disclaimer, so the model has a shape for hereditary-risk reasoning? Or keep §7 disease-agnostic and rely on the guideline table for NCCN specifics? |
 
 ## §8 · Anti-patterns
 

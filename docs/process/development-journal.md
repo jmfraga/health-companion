@@ -1090,6 +1090,92 @@ Quotables ⭐:
 
 ---
 
+### Token-budget audit of chat + simulate (Apr 24 afternoon, solo)
+
+Juan Manuel left for work with the video-hackathon session running.
+Logged into the plan: take a second pass at the MAX_TOKENS /
+thinking-effort pattern across the other two endpoints to catch
+silent demo-killers before Saturday.
+
+**Chat (`runner.py`, `MAX_TOKENS=6144`, `effort=max`).** Reproduced
+the two-turn Act 1 end-to-end:
+
+- Turn 1 *"Hi, I'm Laura. I'm 44. My mom died of breast cancer at
+  52."* — 47 s, 3 `save_profile_field` + 1 `remember`, in-voice
+  prose response, 28 reasoning deltas.
+- Turn 2 *"I want to understand my own risk. What should I actually
+  be doing?"* — 91 s, 3 tool_use blocks (2 `schedule_screening`
+  with full guideline citations + 1 `save_profile_field` for the
+  concern), 44 reasoning deltas, 41 message deltas. All tool_use
+  JSON parsed cleanly.
+
+No truncation. No change to budget. The 6144 limit holds for even
+the densest chat turn in the demo. Keep it.
+
+**Simulate (`simulate.py`, `MAX_TOKENS=4096`, `effort=max`).**
+Reproduced the +3 months proactive flow against the full Turn-2
+state (profile + 2 screenings + LDL seed):
+
+- 44 s total. Single reasoning_start/reasoning_stop cycle — the
+  model emitted `submit_proactive_message` in the free turn, no
+  forced follow-up needed.
+- `proactive_message` payload complete: 481 chars of text, 4
+  concrete `context_refs`, detailed `next_step`.
+- `timeline_event` written correctly.
+
+Also no truncation. 4096 with effort=max holds because the output
+is short by design (2–4 sentences), even with adaptive thinking.
+
+**Finding**: the labs.py bug was special — multimodal ingestion
+with ~55 biomarkers needed a huge tool-call volume, and 8K was
+hungry. Chat and simulate have a small tool surface per turn and
+fit comfortably inside their budgets. The audit pattern stands
+(*"any endpoint that ends with tool calls needs token headroom
+beyond the thinking budget"*) but does not force changes here.
+
+---
+
+### Pre-flight script for the demo (Apr 24 afternoon)
+
+`scripts/demo-preflight.sh` added. One command that:
+
+1. `curl /health` — fails fast with a specific error if the API is
+   unreachable (exit 1).
+2. `POST /api/demo/reset` — clears the five in-memory stores.
+3. `POST /api/trends/seed-demo` — plants the six-point LDL arc.
+4. `--seed-laura` (optional) — primes the profile with a single
+   `/api/chat` call so a second take doesn't start from zero.
+5. Prints the pre-record checklist (incognito · `?demo=1` ·
+   reasoning toggle · zoom 100% · PDF on desktop · audio check ·
+   screen recorder armed · notifications off).
+
+Parameterized by `HC_API_URL` env var so the same script runs
+against localhost today and the Fly.io URL when it goes live.
+Exit codes specified (0 ok · 1 API unreachable · 2 reset failed ·
+3 seed failed · 64 unknown flag). `--help` prints the header
+docstring.
+
+---
+
+### Clinical audit cross-ref line-number refresh (Apr 24 afternoon)
+
+Re-verified every line number in
+`docs/process/clinical-audit-crossref.md` against the current
+SYSTEM_PROMPT after the priming purge (`d07765f`). Only one row
+needed an update: §7 "Extended-thinking guidance" — the two neutral
+illustrative examples now live at lines 283-293 (previous cross-ref
+had them unspecified), and the new hard guardrail ("reasoning must
+follow from what the user has actually told you") lives at
+297-303. Header note added to the cross-ref documenting the refresh
+date so Juan Manuel knows it is still trustworthy when he opens it
+Saturday.
+
+All other line citations (Rules 1-6, sanitary-interpreter table,
+screening knowledge block, tool-use protocol, six beats, anti-
+patterns, false-reassurance paragraph) checked out unchanged.
+
+---
+
 ### RESOLVED — Claude Design render (was OPEN Apr 22 night)
 
 The hypothesis list from that night (AuthSkeleton stuck · hydration
