@@ -675,7 +675,442 @@ session scoped in `~/.claude/plans/radiant-riding-orbit.md`.
 
 ---
 
-### OPEN — Claude Design render not visible (Apr 22 night)
+### Cold-judge polish + first run-through findings (Apr 23 evening)
+
+First end-to-end test surfaced a clinical-shaped bug: Act 1's scripted
+opening prompt *"I'm 44. My mom died of breast cancer at 52."* does
+not trigger `schedule_screening`. The model chooses to ask for her
+name first. Initially read as a demo-killer; Juan Manuel reframed it
+as a **feature** — *"cuando estudié medicina no me enseñaron a decir
+'te tienes que hacer mamografía' antes de establecer rapport. Esto es
+SPIKES aplicado fuera de bad-news."* The companion IS behaving like
+a doctor. The demo script is what's wrong. Logged and later rewritten
+as two-turn Act 1.
+
+Cold-judge polish shipped (`e004e42`):
+
+- Welcome card with three clickable example chips (sleep · longevity ·
+  lab anxiety) — none of them Laura.
+- Profile panel humanizer — `family_history.breast_cancer_mother` →
+  *"Mother had breast cancer"*. Booleans hidden when redundant.
+- `ProactiveLetter` lost the hardcoded *"While we were quiet"* walking
+  / glucose / check-in rows (literal lies inside the wow-card); the
+  `alert()` became an inline toast; two dead secondary buttons
+  removed.
+- New `POST /api/demo/reset` + *"Start fresh"* header button.
+- `?demo=1` / `NEXT_PUBLIC_DEMO_BYPASS_AUTH` short-circuit on the
+  Supabase session guard so a cold judge never hangs on ChatSkeleton.
+
+---
+
+### Laura priming purge (Apr 23 night)
+
+Juan Manuel typed *"I'm 50 and want to stick around longer"* and saw
+the reasoning trace running NCCN breast-cancer logic. He had not
+mentioned sex or family history. The prompt was priming the model.
+
+Three fixes (`d07765f`, `16386a4`):
+
+- `runner.py` §5 `remember()` examples — Laura replaced with neutral
+  scenarios (caregiver for aging parent · four years since the last
+  doctor visit).
+- `runner.py` §7 reasoning-shape example — the *"44 y/o female,
+  maternal breast cancer at 52"* case was pinning the model. Replaced
+  with two different profiles (58 asking about a first-time borderline
+  BP · 32 asking about sleep after a tough quarter) and an explicit
+  rule: **reasoning must follow from what the user has told you;
+  never import assumptions from the examples above.**
+- `tools.py` descriptions rewritten with broad examples across
+  domains; `fetch_guidelines_for_age_sex` description hardens the
+  "never infer sex" guardrail.
+
+But the bigger culprit lived in the frontend.
+`ReasoningSheet.extractSources()` had **hardcoded defaults** that
+surfaced *"USPSTF 2024 — breast cancer screening"*, *"NCCN v.2.2025 —
+high-risk assessment"*, and *"Dr. Fraga's clinical voice guide
+(internal)"* on every reasoning trace whose keywords didn't match the
+narrow allowlist. A 50-year-old asking about longevity was seeing
+NCCN breast-cancer high-risk assessment as a source. Rewrote with a
+topic→source pattern table, narrow matches only, and the honest
+fallback: *"Your conversation so far — nothing else looked up yet."*
+
+Also killed the `ProactiveLetter` fallback copy *"Hold a mammography
+slot"* when `next_step` was empty — replaced with neutral *"Put this
+on your calendar."*
+
+Retest on the same prompt: reasoning now reads *"So they're 50 and
+concerned about living longer, but I don't have their name or sex
+yet — I shouldn't make assumptions. I'll skip looking up guidelines
+until I know more about them."* Turn time dropped from ~60 s to
+~16 s because the model stopped chasing a phantom screening decision.
+
+Lesson logged: **defaults that fire "when nothing matches" are a
+leak vector.** Audit every `fallback` / `default` in the UI against
+the product's priming discipline.
+
+---
+
+### Repo honesty pass (Apr 23 night)
+
+Juan Manuel's directive: *"revisa el repo, tambien debe haber muchos
+falsos mensajes por ahi que limpiar, empezando por el readme."*
+
+Findings: README pinned the product to Laura's story, claimed
+*"SQLAlchemy"* (unused), *"Data: SQLite, shipped with the repo"*
+(doesn't exist), *"no authentication and a single seed profile"*
+(Supabase Auth is wired). `architecture.md` had a SQLite diagram
+that didn't match reality, an `agent_runs` table that was pure
+aspiration, and *"No authentication for the demo. Laura is the only
+profile."* `agents.md` promised per-turn cost tracking that isn't
+implemented.
+
+Shipped (`4639c09`):
+
+- README rewritten — Laura reframed from *product description* to
+  *recorded walk-through* used in the submission video. Tech stack
+  honest about in-memory state, Supabase Auth wired with demo
+  bypass, persistence deferred to Phase 1.
+- `architecture.md` rewritten against ground truth — in-memory
+  state stores documented with shapes, SQLite diagram and
+  fabricated `agent_runs` removed, persistence plan moved to the
+  Phase 1 section where it belongs.
+- `agents.md` observability section now reads *"Not implemented in
+  the MVP"* — replaced the cost-tracking claim the pre-judge audit
+  flagged (B11).
+- 11 process docs moved via `git mv` to `docs/process/` (history
+  preserved): thesis, concept, competitive analysis, hackathon
+  brief and plan, demo script, clinical audit checklist,
+  run-through findings, managed-agents notes, submission draft,
+  development-journal itself. New `docs/process/README.md` index.
+  Keeps `docs/` as reference docs, `docs/process/` as archive.
+- `/trends` empty-state CTA + `trends.py` seed docstring no longer
+  say "Laura".
+
+---
+
+### Product horizon — thinking beyond the hackathon (Apr 23 night)
+
+Juan Manuel, as the submission deadline approached:
+*"dame el roadmap completo y detallado con lo hecho y lo que falta
+como si no fuera para el hackathon. Me estoy entusiasmando con este
+proyecto y quiero que se convierta en realidad."*
+
+New artifact: `docs/product-horizon.md` (~477 lines, 6 parts).
+
+1. Ground-truth state — what code actually runs, what is prose, what
+   is honestly missing (no persistence, no observability, no tests,
+   no production deploy, no team, no legal, no pilot).
+2. Five phases — Phase 0 (hackathon MVP, ending) · Phase 1
+   (production-ready single user, Q2) · Phase 2 (the Bridge, real
+   clinician workflow, Q3–Q4) · Phase 3 (evidence + scale, 2027) ·
+   Phase 4 (policy infrastructure — insurers + ministries of health,
+   2028+).
+3. Concrete next 60 days.
+4. Decisions that shape everything — geographic focus (MX-first
+   likely · US-first possible), commercial structure (bootstrap vs.
+   angel vs. grant), co-founder, first pilot site, regulatory
+   posture, OSS posture, team narrative.
+5. Assets to hold onto when the work gets hard.
+6. Risks if momentum stalls.
+
+The moment Juan Manuel asked for this, Health Companion stopped
+being a hackathon artifact in his head.
+
+---
+
+### Demo-script v2 (two-turn Act 1) + Bridge Preview (Apr 23 night)
+
+The clinical insight from the first run-through collapsed into demo
+structure. Act 1 rewritten as two turns:
+
+- Turn 1 · *Hi, I'm Laura. I'm 44. My mom died of breast cancer at
+  52.* → companion names her loss, asks what's on her mind. Profile
+  panel fills in live.
+- Turn 2 · *I want to understand my own risk.* → companion proposes
+  mammography with full NCCN reasoning available in the See
+  reasoning disclosure.
+
+3:00 budget still holds: cold open trimmed to 12s, Act 1 grows to
+~78s, Act 2 to 55s, new Bridge segment at 20s, close at 15s.
+
+Bridge Preview shipped (`caab404`):
+
+- `/bridge` — white-label header with dashed "Your clinic here"
+  placeholder + *"powered by Health Companion"*.
+- Left rail: four enrolled patients. The first reads real backend
+  state (`/api/profile`, `/api/screenings`, `/api/trends`) so if the
+  judge has been chatting, their own thread lives there. The other
+  three are illustrative (Carlos 58 BP creeping, Ana 42 post-endo
+  TSH 3.2 normalizing, Miguel 64 overdue colorectal with a plateaued
+  weight loss).
+- Selected patient detail: goals, amber *"Prepared for next visit"*
+  bullets derived from state, between-visit trend cards reusing
+  `TrendChart` + `Sparkline`, and the key beat: clinician note in
+  clinical language alongside its auto-translated plain-language
+  version the patient actually reads.
+- Phase-2 preview tagged in the footer. Not clinical use.
+
+Voice I/O explicitly deferred — latency risk against a judge's
+three-minute patience is not worth the reward until we have time to
+build it properly.
+
+---
+
+### Accessibility as a cost-architecture constraint — ROADMAP §18 (Apr 23 night)
+
+Juan Manuel, after checking the Anthropic console: *"cada llamada hace
+20,000-30,000 tokens de entrada y unos 300 a 3000 de salida. Si una
+persona lo usa diario 2-3 veces el costo puede llegar a ser de miles
+de dólares al mes..."*
+
+He overestimated per-user (math is $12–20/month), but at scale the
+concern is real: 10K users → $120–200K/month, 100K → $1–2M/month. At
+those numbers, **the product reinforces the inequity it claims to
+invert.**
+
+ROADMAP §18 added (`5814983`) — honest per-turn cost breakdown of
+~$0.17 today (system prompt ~5K tokens, growing state snapshot, full
+conversation replay, adaptive-thinking-at-max consuming output
+budget), seven levers in priority order, and the target:
+
+  prompt caching with 1-hour TTL, turn-type routing (Haiku for
+  rapport, Sonnet for everyday, reserve Opus for labs / screenings /
+  proactive), extended thinking on demand rather than by default,
+  conversation history compression, embedding-retrieved memory,
+  local classifier on the existing MLX infrastructure, sectioned
+  system prompt.
+
+First three alone take per-turn cost from $0.17 to ~$0.04 without
+touching the clinical surface. Per-heavy-user monthly cost falls
+from $12–20 to under $3 — the threshold where primary-care
+economies in México can absorb it.
+
+Mapped onto four tiers: free (first-timer, funded by the tiers
+below) · patient ($3–5/mo subscription) · Bridge B2B2C
+($10–20/patient/mo paid by the clinic) · public-health tier priced
+against IMSS / CMS preventive-care reimbursement codes.
+
+README design-principles section gets a new bullet so the
+commitment is visible above the fold: *"Accessibility is an
+architectural constraint."*
+
+---
+
+### Friday prep — deploy playbook + clinical-audit cross-reference (Apr 23 night)
+
+Two artifacts so Friday is mechanical, not investigative (`51929cd`):
+
+- `DEPLOY.md` at repo root — Fly.io + Vercel + CORS + custom domain
+  + rollback + known limitations, top-to-bottom, commands quoted
+  verbatim. `apps/api/Dockerfile` + `fly.toml` + `.dockerignore` +
+  `apps/web/vercel.json` all scaffolded alongside.
+- `docs/process/clinical-audit-crossref.md` — every row of the
+  clinical-audit checklist mapped against the current SYSTEM_PROMPT
+  with line numbers and a four-level verdict (✅ matches ·
+  🔶 close-different-wording · ⚠️ gap · 👤 needs-judgment). Eight
+  rows pre-flagged as the items that actually need Juan Manuel's
+  30 minutes Saturday; the rest are rubber-stamps with the quoted
+  prompt line already next to them. Critical flags:
+  - NCCN "10 years earlier" is in the guideline table but not in
+    the prompt §4 — the demo narration and ReasoningSheet both
+    ride on this claim. Move into §4?
+  - Red-flag escalation script references "911" (US only); add MX
+    regional phrasing for the recorded walk-through.
+  - Scripted pushback phrases for *"can you diagnose me"* / *"can
+    you prescribe"* aren't explicit in §9; rely on voice or script?
+
+---
+
+### PHI/PII clarification from the hackathon Q&A (Apr 24 morning)
+
+Anthropic's response to the Managed-Agents-vs-patient-privacy question
+Juan Manuel filed: *"I would suggest not putting real PHI/PII in your
+project. Your business needs an enterprise subscription and a BAA
+with Claude/Anthropic in order to have your managed agents
+HIPAA-ready."*
+
+Two implications, both load-bearing:
+
+- **For the submission**: synthetic data throughout the scripted
+  walk-through. If a judge interacts with their own information,
+  `/privacy` says so honestly — demo environment, not clinical-
+  grade. The sample lab PDF must be fully PHI-free.
+- **For the product**: Managed Agents is not BAA-covered by default.
+  The migration from Messages API to MA for real clinical workloads
+  waits on enterprise + BAA. **The patient surface stays on
+  Messages API through Phase 2.** For México specifically, HIPAA
+  doesn't apply but LFPDPPP + NOM-004-SSA3-2012 do — Aviso de
+  Privacidad + informed consent become pre-conditions for the
+  Bridge pilot.
+
+`/privacy` and README rewritten (`ab2c9d7`): scripted patient is
+synthetic, judges welcome to try with their own info knowing this is
+a demo environment (not clinical-grade yet), Phase-1 work to reach
+the bar is scoped explicitly in `docs/product-horizon.md`. Old
+claims about encryption *"at rest and in transit"* reframed as
+Phase-1 promises alongside the demo reality (in-memory, Start fresh
+clears server-side instantly).
+
+---
+
+### Synthetic lab fixture + LDL arc with a setback (Apr 24 morning)
+
+Juan Manuel: *"Lo que vamos a hacer es que te daré un laboratorio mío
+y lo vas a modificar para que cumpla lo necesario para la demo."*
+Pulled his January lab via Tailscale scp. Anonymization plan
+documented row-by-row, approved, then executed.
+
+Regenerated from scratch via `reportlab` rather than editing the
+original — cleanest PHI removal (no hidden metadata, no incomplete
+redaction risk). Synthetic patient **Laura Fernández Herrera**,
+44 y/o female, fake MRN, DOB 15/03/1982. Hemoglobin 14.2 /
+hematocrit 42 adjusted into adult-female reference band. PSA
+removed entirely (male-only test). Fasting glucose anchored at
+**118** per Juan Manuel's call to preserve the demo narrative
+beat. Third-party identifiers removed: Dra. Adriana Mendoza Noguez
+(lab technician), Hospital H+ / HOSPITALES MAC branding, contact
+info in the footer. Visible *"DEMO · SYNTHETIC DATA"* band on every
+page — self-documenting if the file ever leaves the demo context.
+`fixtures/labs-laura-demo.pdf` + `fixtures/make_lab_pdf.py` +
+`fixtures/README.md` (`ab2c9d7`).
+
+Juan Manuel's directive for the /trends seed: *"quizá no mostrar
+una curva descendente sino con ups and downs aunque al final, mejor
+y quizá de 6 meses."* Replaced the 3-month glucose linear descent
+(118 → 115 → 112 → 108) with a 6-month LDL arc:
+**136 → 128 → 141 (setback · travel broke the routine) → 132 →
+124 → 112.** Three `lab_report` + three `user_said` sources,
+interleaved so the source-dot story reads correctly. Ends better
+than it started — real change is not linear, and the companion
+gets a voice for the setbacks, not just the wins.
+
+Demo-script v3 rewrites Act 2 narration to name multiple findings
+(glucose 118, LDL 136, cholesterol 223, HDL 70 protective) instead
+of the single glucose anchor, and adds an Act-2 close visit to
+`/trends` to narrate the LDL setback-and-recovery arc.
+
+Quotable ⭐:
+> *"Real change isn't linear — and the companion has a voice for
+> the setbacks, not just the wins."*
+
+---
+
+### Labs ingest bug caught in pre-deploy testing (Apr 24)
+
+Juan Manuel left for work; Task A of the morning was to verify the
+new synthetic PDF ingests cleanly through `/api/ingest-pdf` before
+Friday's deploy.
+
+First run (`MAX_TOKENS=8192`, `effort=max`): HTTP 200, but
+`lab_analysis={}` empty and **zero biomarkers stored**. The
+reasoning trace showed the model's intent — *"I'll batch the
+biomarker logging calls and the profile update together, then
+write out the narrative summary, and finally submit the full
+analysis"* — but the stream ended without emitting any `tool_use`
+blocks. Adaptive thinking at max effort consumed the entire 8K
+token budget on reasoning; when the model tried to pivot to tool
+use, there were no tokens left. The forced follow-up turn then
+emitted `submit_lab_analysis` with an empty payload because nothing
+had been extracted yet.
+
+This would have been demo-killing during Saturday's recording —
+silently, without an error. Caught it Friday morning instead.
+
+Fix (`67b42dd`): `MAX_TOKENS=24576`, `THINKING_EFFORT=high`. Retest:
+
+- 4 phases animate fully (opening_pdf → extracting_values →
+  cross_referencing → drafting_response).
+- 60 `log_biomarker` calls, 55 unique values stored.
+- `save_profile_field` infers `sex=female` from the report.
+- 55 structured values, 6 tiered flags
+  (`talk_to_doctor` · `watch` · `info`), 6 `doctor_questions`.
+- `panel_summary` opens *"Laura, the overall shape of this panel
+  is mostly reassuring, with a few specific threads worth following
+  up..."* — the clinical voice landing exactly as authored.
+- Turn time went from 1:57 to 2:32 — acceptable because the
+  four-phase reading-state animation covers the wait.
+
+Lesson: **any endpoint that ends with tool calls needs token
+headroom beyond the thinking budget.** Worth auditing `chat.py` and
+`simulate.py` for the same pattern — not this session, on the
+Phase-1 list.
+
+---
+
+### The natural history of disease — thesis §5 (Apr 24)
+
+Juan Manuel, while installing Remotion to make editorial clips for
+the submission video: *"cuando estudié medicina me explicaron que
+en la historia natural de cualquier enfermedad existen tres
+etapas..."*
+
+He articulated what med school teaches (Stage 1 Health · Stage 2
+Preclinical · Stage 3 Clinical) and — more importantly — **what it
+does not teach explicitly**: that Stage 1 is not a passive state.
+*"En la etapa de salud el individuo construye su salud presente y
+futura (O NO)."* The difference between arriving strong at sixty
+and arriving fragile is not made by the diagnosis at 52 — it is
+made across the two decades when nobody was watching.
+
+Health Companion's intention reframed: **meet the person before
+Stage 2, or at worst inside it; not only hold the line, but lift it
+above the original Stage-1 level.** The measurement reframes with
+it — the product succeeds not by diagnoses caught (consequence) but
+by years of real health actively built before the system had reason
+to call the person a patient (purpose).
+
+Shipped (`2624211`):
+
+- Thesis §5 — in the founder voice, positioned between *"three
+  educational goals"* and *"two levels of prevention"* so the
+  clinical framing sets up why prevention is tiered in the first
+  place. Sections 6–11 renumbered.
+- README "Where we intervene — the three stages of any disease"
+  section before Design principles. Pitch-voiced.
+- `docs/process/video-hackathon-brief.md` — a prompt-ready brief
+  for a dedicated Claude Code session running Remotion to produce
+  five editorial clips that interleave with the Loom recording:
+  01 the three stages (thesis carrier) · 02 where we intervene
+  (cross-fades with 01, shows the lifted line above original
+  Stage-1 level) · 03 one product two surfaces (phone + Bridge
+  connected by emerald arc) · 04 the sanitary interpreter
+  (medical term → plain language) · 05 memory compounding
+  (sparkline with mid-arc setback — the LDL arc the /trends seed
+  now produces). Visual language locked to the product's palette
+  (paper + zinc + semantic emerald / amber / blue).
+
+Quotables ⭐:
+> *"Stage 1 is not a passive state. In the health stage, the
+> person is either building their future health every day or
+> eroding it every day."*
+
+> *"Leave the person measurably better than when we met. A life
+> measured not by a diagnosis avoided, but by a level of health
+> actively built."*
+
+---
+
+### RESOLVED — Claude Design render (was OPEN Apr 22 night)
+
+The hypothesis list from that night (AuthSkeleton stuck · hydration
+mismatch · session-guard flicker · stale service worker) was
+superseded by a simpler fix. The `?demo=1` +
+`NEXT_PUBLIC_DEMO_BYPASS_AUTH` short-circuit in `ChatPage`
+(`e004e42`) means the session guard never holds the cold user on
+the skeleton, regardless of whether Supabase resolves. Juan Manuel
+confirmed the new visual surfaces (welcome card, humanized profile
+panel, Start fresh, Bridge page, /trends with sparklines) render
+cleanly from multiple browsers after the cold-judge pass landed.
+
+The same night's `<input type="file">` re-upload issue (can't pick
+the same filename twice) is resolved implicitly — the drop zone
+re-mounts when Start fresh fires — though a proper
+`inputRef.current.value = ""` reset remains the right fix when we
+next touch `LabDropZone`.
+
+---
+
+### OPEN — Claude Design render not visible (Apr 22 night · RESOLVED above)
 
 Implemented the full Claude Design handoff (commits `1bec7c0` and prior). The new visual (companion prose + heart avatar, Laura emerald bubbles, ToolTraceCard, ScheduleCard, inline LabExpanded, pill composer, reading-state animation, ProactiveLetter, ReasoningSheet) does not appear in Juan Manuel's browser.
 
