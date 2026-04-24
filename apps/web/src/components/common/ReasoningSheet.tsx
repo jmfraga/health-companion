@@ -32,28 +32,94 @@ function synthesizeProposal(reasoning: string | null | undefined): string {
 }
 
 /**
- * Best-effort extraction of likely sources the clinical orchestrator
- * leans on. If the reasoning text mentions any known guideline, surface
- * it; otherwise fall back to the demo defaults.
+ * Best-effort extraction of the guidelines the orchestrator actually
+ * referenced in this turn's reasoning. We never default to a specific
+ * disease-screening source — doing so once surfaced "USPSTF 2024 —
+ * breast cancer screening" to a user who hadn't mentioned sex or cancer.
+ *
+ * Each pattern-to-source pair is narrow and topic-true. When nothing
+ * matches we show a single neutral note instead of guessing a guideline.
  */
+type SourcePattern = { pattern: RegExp; source: string };
+
+const SOURCE_PATTERNS: SourcePattern[] = [
+  // Cancer-specific guidelines — matched on both the body and the cancer type.
+  {
+    pattern: /(mammograph|breast cancer)/i,
+    source: "USPSTF 2024 · ACS 2023 · NCCN — breast cancer screening",
+  },
+  {
+    pattern: /(pap smear|cervical|hpv)/i,
+    source: "USPSTF 2018 · ACOG — cervical cancer screening",
+  },
+  {
+    pattern: /(colonoscopy|colorectal|colon cancer|fit\s|stool dna)/i,
+    source: "USPSTF 2021 · ACS 2018 — colorectal cancer screening",
+  },
+  {
+    pattern: /(prostate|psa\b)/i,
+    source: "USPSTF 2018 · AUA — prostate cancer screening",
+  },
+  {
+    pattern: /(lung cancer screening|low-dose ct|ldct)/i,
+    source: "USPSTF 2021 — lung cancer screening",
+  },
+  // Cardiometabolic.
+  {
+    pattern: /(hba1c|fasting glucose|diabetes)/i,
+    source: "ADA 2024 — Standards of Care in Diabetes",
+  },
+  {
+    pattern: /(ldl|cholesterol|ascvd|statin)/i,
+    source: "ACC/AHA 2019 — ASCVD prevention",
+  },
+  {
+    pattern: /(blood pressure|hypertens|systolic|diastolic)/i,
+    source: "USPSTF 2021 / ACC/AHA — blood pressure screening",
+  },
+  // Mental health.
+  {
+    pattern: /(phq-9|phq9|depression screen)/i,
+    source: "USPSTF 2023 — depression screening (PHQ-9)",
+  },
+  {
+    pattern: /(gad-7|gad7|anxiety screen)/i,
+    source: "USPSTF 2023 — anxiety screening (GAD-7)",
+  },
+  // México primary-care adjuncts.
+  {
+    pattern: /(prevenimss|enmssa|nom-030|nom-015|secretar[ií]a de salud)/i,
+    source: "Secretaría de Salud México — NOM-030 / NOM-015",
+  },
+  // Generic USPSTF reference when the reasoning names it but nothing above matched.
+  {
+    pattern: /uspstf/i,
+    source: "USPSTF — U.S. Preventive Services Task Force",
+  },
+  // Generic NCCN only when cancer context is present (avoids surfacing it
+  // on a non-oncology turn that happens to say "NCCN" for another reason).
+  {
+    pattern: /nccn[\s\S]{0,40}(cancer|screen|risk|oncolog)/i,
+    source: "NCCN — National Comprehensive Cancer Network guidelines",
+  },
+  {
+    pattern: /(usps|acog|acc\/aha|esc|acs|aap|auscultation?)/i,
+    source: "Cited guideline body",
+  },
+];
+
 function extractSources(reasoning: string | null | undefined): string[] {
-  const defaults = [
-    "USPSTF 2024 — breast cancer screening",
-    "NCCN v.2.2025 — high-risk assessment",
-    "Dr. Fraga's clinical voice guide (internal)",
-  ];
-  if (!reasoning) return defaults;
-  const r = reasoning.toLowerCase();
-  const hits: string[] = [];
-  if (r.includes("uspstf")) hits.push("USPSTF 2024 — breast cancer screening");
-  if (r.includes("nccn")) hits.push("NCCN v.2.2025 — high-risk assessment");
-  if (r.includes("ada") || r.includes("a1c"))
-    hits.push("ADA 2024 — Standards of Care");
-  if (r.includes("ascvd") || r.includes("cholesterol"))
-    hits.push("ACC/AHA 2019 — ASCVD prevention");
-  if (hits.length === 0) return defaults;
-  hits.push("Dr. Fraga's clinical voice guide (internal)");
-  return hits;
+  if (!reasoning || !reasoning.trim()) {
+    return ["Your conversation so far — nothing else looked up yet."];
+  }
+  const hits = new Set<string>();
+  for (const { pattern, source } of SOURCE_PATTERNS) {
+    if (pattern.test(reasoning)) hits.add(source);
+  }
+  if (hits.size === 0) {
+    return ["Your conversation so far — nothing else looked up yet."];
+  }
+  return Array.from(hits);
 }
 
 /**

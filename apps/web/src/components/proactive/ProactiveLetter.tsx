@@ -88,7 +88,11 @@ export function ProactiveLetter({
       );
     });
 
-  const nextStep = message.next_step?.trim() || "Hold a mammography slot";
+  // Fallback copy is deliberately generic — the real next_step comes from
+  // the backend for the specific user. A disease-specific fallback once
+  // surfaced "Hold a mammography slot" to users who had nothing to do
+  // with breast cancer.
+  const nextStep = message.next_step?.trim() || "Put this on your calendar";
 
   return (
     <div
