@@ -5,8 +5,10 @@
 > This document complements [`../ROADMAP.md`](../ROADMAP.md). The ROADMAP is
 > a catalog of capability threads; this is the strategic trajectory —
 > phases, dependencies, decisions that shape everything. Written the night
-> of April 23, 2026, as the hackathon sprint nears submission and the
-> founder is starting to think about what comes next.
+> of April 23, 2026, as the hackathon sprint neared submission. Updated
+> the night of April 24, 2026 once the production deploy and the
+> clinical audit had landed — and the founder started thinking about
+> what comes next from a different starting line than the night before.
 
 ---
 
@@ -16,15 +18,28 @@
 
 **Patient surface — a working prototype of the conversational health companion:**
 
-- Cold-open chat with welcome card and three clickable example chips
-  (sleep · longevity · lab anxiety), none of them pinned to a specific
-  user story.
+- Cold-open chat with welcome card and four clickable example chips
+  (sleep · longevity · lab anxiety · photo of a smartwatch), none
+  of them pinned to a specific user story — the smartwatch chip
+  exists to telegraph that the product accepts photos of any
+  device screen, not only PDFs.
 - Streaming chat with visible tool-use trace, companion prose
   asymmetric from user bubbles (by design).
 - Humanized profile panel — no JSON leaks; dotted-key paths mapped to
   human labels ("Mother had breast cancer" rather than
   `family_history.breast_cancer_mother`), booleans hidden when
   redundant, units appended to numeric fields.
+- "Habits in follow-up" block in the same panel — surfaces the
+  `lifestyle.*` and `concerns.*` fields the orchestrator captures
+  conversationally (sleep, exercise, diet, alcohol, tobacco,
+  longevity, weight) with the same visual language as the
+  screenings list, on desktop and on the mobile bottom sheet.
+- Profile-photo upload in `/settings` — file picker, canvas
+  256×256 center-crop to JPEG, persisted in `localStorage`.
+  Live-updating Avatar component listens for a custom event so the
+  header swaps without a refresh. Demo-grade by design (per-browser,
+  per-device); the read path moves to Supabase Storage in Phase 1
+  without changing any consumer surface.
 - Biomarker tracking list in the sidebar with inline sparklines, auto-
   refreshing when the biomarker count changes.
 - Recommended-screenings calendar with guideline citations.
@@ -33,7 +48,11 @@
   filter to the `/trends` surface in the legend.
 - Multimodal lab ingestion — PDF, JPEG, PNG, WEBP, HEIC — directly
   into Opus 4.7, no OCR layer. Phase events (opening, extracting,
-  cross-referencing, drafting) surface in the drop-zone.
+  cross-referencing, drafting) surface in the drop-zone. The
+  drop-zone copy reads *"Share anything with a reading · Lab PDF
+  · photo of a smartwatch, blood pressure cuff, prescription label
+  — anything readable,"* so the affordance matches the model's
+  actual capability.
 - Three-months-later proactive simulation with a full-height letter
   layout, context-refs rendered as amber pill-tags, one honest CTA,
   inline toast instead of `alert()` for unfinished integrations.
@@ -46,6 +65,9 @@
   Phase-1 toggles.
 - `/privacy` and `/how-this-works` static surfaces.
 - Emergency pill — persistent, region-specific crisis numbers.
+- Mobile chrome — hamburger nav with all the desktop links, mobile-
+  fit header title and subtitle, lab-table overflow contained inside
+  its bubble (not pushing the chat column off-viewport).
 - Supabase Auth wired on the web app with `?demo=1` bypass and
   `NEXT_PUBLIC_DEMO_BYPASS_AUTH` for a zero-friction judge URL.
 - `Start fresh` header button + `POST /api/demo/reset` that clears
@@ -53,6 +75,11 @@
 
 **Clinician surface — preview only (`/bridge`):**
 
+- Amber advisory banner at the top of the page — *"Preview only.
+  This section will only be available in the clinical (clinician-
+  facing) version of Health Companion. It will not ship in the
+  patient app."* So no judge or user mistakes the preview for a
+  shipping surface.
 - White-label header with a dashed "Your clinic here" placeholder +
   "powered by Health Companion."
 - Patient panel rail of four entries — the first reads real state
@@ -77,10 +104,12 @@
 - Per-turn state snapshot injected as a fresh second block so every
   endpoint sees the same cross-endpoint memory without caching the
   snapshot itself.
-- Guardrails: clinically-audited SYSTEM_PROMPT (purged of
-  Laura-specific priming), sanitary-interpreter glossary,
-  anti-patterns (no "as an AI," no false reassurance, no diagnosis,
-  no prescription).
+- Guardrails: clinically-audited SYSTEM_PROMPT (row-by-row review
+  by JM, the practicing physician-author, on Apr 24 — 49 rows of
+  the audit checklist; 5 critical fixes and 11 reword bonuses
+  applied; version stamp 2026-04-24), sanitary-interpreter glossary
+  with eighteen plain-language pairs, anti-patterns (no "as an AI,"
+  no false reassurance, no diagnosis, no prescription).
 - Separate Managed-Agents path at
   `/api/simulate-months-later-managed` for the proactive beat —
   exercises the Managed-Agents side-prize narrative without
@@ -114,22 +143,43 @@
 ### What is honestly missing
 
 - **Persistence.** Every state store is a Python module-level
-  collection. Process restart = data loss. No per-user scoping.
+  collection. The Fly machine is now `auto_stop = 'off'` so a
+  conversation survives between requests, but a redeploy still
+  flushes everything, and there is no per-user scoping. Profile
+  photos persist in `localStorage`, which is per-browser, not
+  per-user.
 - **Observability.** No cost tracking, no per-turn audit rows. The
   `agent_runs` table is aspirational, not real.
 - **Tests.** Zero. No pytest suite, no Playwright, no smoke
-  coverage.
-- **Production deployment.** Runs on an M4 via Tailscale only.
-  Vercel and Fly.io are scoped in docs, unbuilt in practice.
-- **Real-PDF validation.** Act 2's multimodal path has never been
-  end-to-end tested with a real anonymized lab PDF.
-- **Clinical audit run.** The checklist is written; the row-by-row
-  review by a practicing MD has not yet happened.
+  coverage. Walkthroughs by hand are the test plan.
+- **Real-PDF validation.** Tested with the synthetic Laura fixture
+  and with a real cholesterol panel JM dropped in during
+  late-night testing. End-to-end works; long-tail formats and
+  edge laboratories are not yet exercised.
 - **Team.** One founder plus Claude Code subagents. No co-founder,
   engineer, or designer on staff.
 - **Legal.** No entity, no IP assignment, no partnership
   agreements, no BAA with Anthropic or any data processor.
 - **Pilot.** No clinic, no patient. Hypothetical users only.
+
+### What is no longer missing (as of Apr 24, 2026 night)
+
+- **Production deployment.** Frontend on Vercel
+  (`https://health-companion-five.vercel.app`), backend on Fly.io
+  (`https://hc-companion-api.fly.dev`). CORS wired, env vars
+  loaded, `auto_stop_machines = 'off'` so state survives between
+  requests, `HC_SKIP_MANAGED_AGENTS_CREATE = true` so the
+  side-prize endpoint fails cleanly without orphaning Anthropic
+  Agents.
+- **Clinical audit run.** Done by JM tonight, row-by-row, against
+  `docs/process/clinical-audit-checklist.md`. NCCN's "10 years
+  before the relative's diagnosis, not before age 30" pulled from
+  the tool table into the prompt itself; prostate threshold
+  corrected to 55-69 per USPSTF 2018 Grade C; sanitary interpreter
+  expanded by six terms; México emergency-line escalation added.
+  Validated in production against a fresh case (Robert, 51yo with
+  paternal MI at 49) — every audit edit surfaced verbatim in the
+  walkthrough text.
 
 ---
 
@@ -184,9 +234,12 @@ prose. A first Spanish-first pass of the clinical voice — Mexican
 register — so the product ships in the language most of its
 hypothetical users speak first.
 
-**1.5 Production deployment (1 week).** Vercel + Fly.io, a custom
-domain, monitoring (Sentry), alerts, a CI pipeline from `main`.
-Documentation that a non-author can deploy from.
+**1.5 Production deployment, hardening pass (1 week).** Vercel +
+Fly.io are already live (April 24, 2026 night). What Phase 1 adds
+on top: a custom domain, monitoring (Sentry), alerts, a CI
+pipeline from `main`, blue/green deploys, real per-user auth in
+production (the demo bypass closed). Documentation that a
+non-author can deploy from.
 
 **1.6 Closed beta (ongoing).** Waitlist → 20–50 real users.
 Weekly blinded audit of real transcripts by the clinical author.
