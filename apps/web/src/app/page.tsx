@@ -17,6 +17,7 @@ import {
 
 import { useAuth } from "@/lib/auth-context";
 import { getAccessToken } from "@/lib/supabase";
+import { Avatar } from "@/components/profile/Avatar";
 import { EmergencyPill } from "@/components/common/EmergencyPill";
 import { ReasoningSheet } from "@/components/common/ReasoningSheet";
 import { LabDropZone } from "@/components/labs/LabDropZone";
@@ -1459,6 +1460,16 @@ function ChatExperience() {
                 {user.email}
               </span>
             )}
+            {/* Avatar — reads photo from localStorage, falls back to initials */}
+            <Avatar
+              name={
+                profile && typeof profile.name === "string"
+                  ? (profile.name as string)
+                  : user?.email ?? undefined
+              }
+              size={32}
+              className="hidden md:inline-flex"
+            />
             <button
               type="button"
               onClick={() => void handleSignOut()}
@@ -1485,7 +1496,7 @@ function ChatExperience() {
 
       <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 px-3 py-3 md:grid md:grid-cols-[1fr_340px] md:gap-6 md:px-6 md:py-6">
         {/* Chat surface */}
-        <section className="flex min-h-0 flex-1 flex-col rounded-xl border border-zinc-200 bg-white shadow-sm md:h-[calc(100vh-160px)]">
+        <section className="flex min-h-0 min-w-0 flex-1 flex-col rounded-xl border border-zinc-200 bg-white shadow-sm md:h-[calc(100vh-160px)]">
           <div
             ref={transcriptRef}
             className="flex-1 space-y-5 overflow-y-auto px-4 py-4 md:px-6 md:py-5"
@@ -1820,13 +1831,22 @@ function ChatExperience() {
         <aside className="hidden md:flex md:h-[calc(100vh-160px)] md:flex-col md:gap-4 md:overflow-y-auto">
           <div className="flex flex-col rounded-xl border border-zinc-200 bg-white shadow-sm">
             <div className="border-b border-zinc-200 px-5 py-4">
-              <div className="flex items-center gap-2">
-                <User className="h-4 w-4 text-zinc-500" aria-hidden />
-                <h2 className="text-sm font-semibold">Your profile</h2>
+              <div className="flex items-center gap-3">
+                <Avatar
+                  name={
+                    profile && typeof profile.name === "string"
+                      ? (profile.name as string)
+                      : undefined
+                  }
+                  size={36}
+                />
+                <div>
+                  <h2 className="text-sm font-semibold">Your profile</h2>
+                  <p className="text-xs text-zinc-500">
+                    Fills in as we talk. Powered by visible tool use.
+                  </p>
+                </div>
               </div>
-              <p className="mt-0.5 text-xs text-zinc-500">
-                Fills in as we talk. Powered by visible tool use.
-              </p>
             </div>
             <ProfileBody profile={profile} recentlyChanged={recentlyChanged} />
           </div>
@@ -1859,6 +1879,22 @@ function ChatExperience() {
         title="Your profile"
         subtitle="Fills in as we talk."
       >
+        {/* Avatar at top of mobile profile sheet */}
+        <div className="flex items-center gap-3 px-5 pb-2 pt-4">
+          <Avatar
+            name={
+              profile && typeof profile.name === "string"
+                ? (profile.name as string)
+                : undefined
+            }
+            size={48}
+          />
+          {profile && typeof profile.name === "string" && profile.name ? (
+            <span className="text-sm font-semibold text-zinc-900">
+              {profile.name as string}
+            </span>
+          ) : null}
+        </div>
         <ProfileBody profile={profile} recentlyChanged={recentlyChanged} />
         <div className="px-5 pb-4">
           <BiomarkerTrackingList series={trackingSeries} />

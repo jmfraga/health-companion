@@ -169,7 +169,7 @@ export function LabTable({ analysis }: { analysis: LabAnalysis }) {
       </header>
 
       {/* Table — desktop / tablet */}
-      <div className="hidden md:block">
+      <div className="hidden overflow-x-auto md:block">
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left text-[11px] font-semibold uppercase tracking-wider text-zinc-500">

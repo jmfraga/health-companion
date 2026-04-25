@@ -1,9 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+
+import { Avatar } from "@/components/profile/Avatar";
 
 const REASONING_KEY = "hc:showReasoning";
+const PHOTO_KEY = "hc_profile_photo";
+const PHOTO_CHANGE_EVENT = "hc-profile-photo-changed";
+const MAX_INPUT_BYTES = 10 * 1024 * 1024; // 10 MB safety guard
+const CANVAS_SIZE = 256; // output square in px
+const JPEG_QUALITY = 0.85;
 
 /**
  * Settings — first real surface for the preferences that shape the rest of
@@ -11,9 +18,46 @@ const REASONING_KEY = "hc:showReasoning";
  * layer reasoning-visibility decision (always-on "why", opt-in disclosure,
  * always-written audit log) is concrete. Every other toggle lands in Phase 1.
  */
+/** Resize & center-crop an image File to a 256×256 JPEG data URL. */
+async function resizeToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const src = e.target?.result as string;
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = CANVAS_SIZE;
+        canvas.height = CANVAS_SIZE;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          reject(new Error("canvas unavailable"));
+          return;
+        }
+        // Center-crop: find largest square that fits, centered.
+        const { naturalWidth: w, naturalHeight: h } = img;
+        const side = Math.min(w, h);
+        const sx = (w - side) / 2;
+        const sy = (h - side) / 2;
+        ctx.drawImage(img, sx, sy, side, side, 0, 0, CANVAS_SIZE, CANVAS_SIZE);
+        resolve(canvas.toDataURL("image/jpeg", JPEG_QUALITY));
+      };
+      img.onerror = () => reject(new Error("image decode failed"));
+      img.src = src;
+    };
+    reader.onerror = () => reject(new Error("file read failed"));
+    reader.readAsDataURL(file);
+  });
+}
+
 export default function SettingsPage() {
   const [showReasoning, setShowReasoning] = useState<boolean>(false);
   const [hydrated, setHydrated] = useState(false);
+
+  // Photo state
+  const [photo, setPhoto] = useState<string | null>(null);
+  const [photoError, setPhotoError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     try {
@@ -21,6 +65,12 @@ export default function SettingsPage() {
       if (raw !== null) setShowReasoning(raw === "true");
     } finally {
       setHydrated(true);
+    }
+    // Read photo
+    try {
+      setPhoto(window.localStorage.getItem(PHOTO_KEY));
+    } catch {
+      // private browsing — just leave null
     }
   }, []);
 
@@ -42,6 +92,42 @@ export default function SettingsPage() {
       // Private browsing or localStorage disabled — toggle still reflects
       // in-memory state for this session.
     }
+  };
+
+  // Photo handlers
+  const dispatchPhotoChange = () => {
+    window.dispatchEvent(new Event(PHOTO_CHANGE_EVENT));
+  };
+
+  const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    // Reset input value so the same file can be re-picked after removal.
+    e.target.value = "";
+    setPhotoError(null);
+    if (file.size > MAX_INPUT_BYTES) {
+      setPhotoError("Couldn't read that file — try a smaller photo.");
+      return;
+    }
+    try {
+      const dataUrl = await resizeToDataUrl(file);
+      window.localStorage.setItem(PHOTO_KEY, dataUrl);
+      setPhoto(dataUrl);
+      dispatchPhotoChange();
+    } catch {
+      setPhotoError("Couldn't read that file — try a smaller photo.");
+    }
+  };
+
+  const removePhoto = () => {
+    try {
+      window.localStorage.removeItem(PHOTO_KEY);
+    } catch {
+      // noop
+    }
+    setPhoto(null);
+    setPhotoError(null);
+    dispatchPhotoChange();
   };
 
   return (
@@ -85,6 +171,67 @@ export default function SettingsPage() {
           </p>
         </div>
 
+        {/* ------------------------------------------------------------------ */}
+        {/* Profile photo                                                       */}
+        {/* ------------------------------------------------------------------ */}
+        <section className="mb-6 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
+          <h2 className="text-base font-semibold text-zinc-900">Profile photo</h2>
+          <p className="mt-1 text-sm leading-relaxed text-zinc-600">
+            Optional — shown in your header and profile panel. Stored only in
+            this browser; never uploaded anywhere.
+          </p>
+
+          <div className="mt-5 flex items-center gap-5">
+            {/* 128 × 128 circular preview */}
+            <div className="shrink-0">
+              <Avatar name={undefined} size={128} />
+            </div>
+
+            <div className="flex flex-col gap-3">
+              {/* Hidden native file input */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="sr-only"
+                aria-label="Choose profile photo"
+                onChange={onFileChange}
+              />
+
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="inline-flex min-h-[36px] items-center rounded-full border border-zinc-300 bg-white px-4 text-sm font-medium text-zinc-700 transition hover:border-zinc-400 hover:bg-zinc-50 active:bg-zinc-100"
+              >
+                {photo ? "Change photo" : "Choose photo"}
+              </button>
+
+              {photo && (
+                <button
+                  type="button"
+                  onClick={removePhoto}
+                  className="inline-flex min-h-[36px] items-center rounded-full border border-rose-200 bg-rose-50 px-4 text-sm font-medium text-rose-700 transition hover:bg-rose-100"
+                >
+                  Remove photo
+                </button>
+              )}
+
+              {photoError && (
+                <p role="alert" className="text-xs text-rose-600">
+                  {photoError}
+                </p>
+              )}
+
+              <p className="text-xs text-zinc-400">
+                JPEG, PNG, or WEBP · resized to 256 × 256 in your browser
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* ------------------------------------------------------------------ */}
+        {/* Reasoning visibility                                                */}
+        {/* ------------------------------------------------------------------ */}
         <section className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
           <h2 className="text-base font-semibold text-zinc-900">
             Show reasoning in conversations
@@ -156,13 +303,6 @@ export default function SettingsPage() {
               <span>
                 <strong className="font-medium">Language override.</strong>{" "}
                 Default follows your device; override in conversation or here.
-              </span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-zinc-300" />
-              <span>
-                <strong className="font-medium">Profile photo.</strong>{" "}
-                Optional &mdash; shown top-right when you sign in.
               </span>
             </li>
             <li className="flex items-start gap-2">

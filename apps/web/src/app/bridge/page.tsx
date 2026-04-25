@@ -23,6 +23,7 @@
 
 import Link from "next/link";
 import { ArrowLeft, AlertCircle, FileText, Heart, Stethoscope } from "lucide-react";
+import { Avatar } from "@/components/profile/Avatar";
 import { useEffect, useMemo, useState } from "react";
 
 import { TrendChart, type TrendPoint, type ReferenceRange } from "@/components/trends/TrendChart";
@@ -428,16 +429,22 @@ export default function BridgePage() {
                   }
                 >
                   <div className="flex items-center gap-3">
-                    <span
-                      className={
-                        "inline-flex h-10 w-10 items-center justify-center rounded-full font-mono text-[12px] font-semibold " +
-                        (isSelected
-                          ? "bg-emerald-600 text-white"
-                          : "bg-zinc-100 text-zinc-700")
-                      }
-                    >
-                      {p.initials}
-                    </span>
+                    {p.id === "real" ? (
+                      // Real patient uses the Avatar component (picks up the
+                      // user's actual photo from localStorage if set).
+                      <Avatar name={p.name} size={40} />
+                    ) : (
+                      <span
+                        className={
+                          "inline-flex h-10 w-10 items-center justify-center rounded-full font-mono text-[12px] font-semibold " +
+                          (isSelected
+                            ? "bg-emerald-600 text-white"
+                            : "bg-zinc-100 text-zinc-700")
+                        }
+                      >
+                        {p.initials}
+                      </span>
+                    )}
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-semibold text-zinc-900">
                         {p.name}
