@@ -1340,7 +1340,7 @@ function ChatExperience() {
               {mobileMenuOpen && (
                 <div
                   role="menu"
-                  className="absolute right-0 top-full z-50 mt-2 w-52 rounded-xl border border-zinc-200 bg-white py-1 shadow-lg"
+                  className="fixed right-3 top-14 z-50 w-52 rounded-xl border border-zinc-200 bg-white py-1 shadow-lg"
                 >
                   <Link
                     href="/trends"
@@ -1460,16 +1460,19 @@ function ChatExperience() {
                 {user.email}
               </span>
             )}
-            {/* Avatar — reads photo from localStorage, falls back to initials */}
-            <Avatar
-              name={
-                profile && typeof profile.name === "string"
-                  ? (profile.name as string)
-                  : user?.email ?? undefined
-              }
-              size={32}
-              className="hidden md:inline-flex"
-            />
+            {/* Avatar — reads photo from localStorage, falls back to initials.
+                Wrapped in a div so the desktop-only visibility cannot be
+                overridden by the Avatar's own internal display class. */}
+            <div className="hidden md:inline-flex">
+              <Avatar
+                name={
+                  profile && typeof profile.name === "string"
+                    ? (profile.name as string)
+                    : user?.email ?? undefined
+                }
+                size={32}
+              />
+            </div>
             <button
               type="button"
               onClick={() => void handleSignOut()}
