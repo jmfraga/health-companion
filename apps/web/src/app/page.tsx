@@ -2067,42 +2067,44 @@ function ChatSkeleton() {
 // Once activated, the bypass is sticky for the browser tab/window —
 // without that, navigating away from `/?demo=1` to `/trends` and
 // pressing back would land the user on `/login` because the next `/`
-// hit no longer has the URL param. Sticky state preserves the demo
-// posture across internal navigation and back-button history.
+// hit no longer has the URL param.
+//
+// `isDemoBypassNow()` is callable synchronously from any render or
+// effect — used by the redirect effect to avoid a race with
+// `useDemoBypass`'s state update on first mount, where the redirect
+// fired with the stale `bypass=false` closure value before setBypass
+// had landed.
 const DEMO_BYPASS_KEY = "hc_demo_bypass";
+
+function isDemoBypassNow(): boolean {
+  if (process.env.NEXT_PUBLIC_DEMO_BYPASS_AUTH === "true") return true;
+  if (typeof window === "undefined") return false;
+  try {
+    if (new URLSearchParams(window.location.search).get("demo") === "1") {
+      return true;
+    }
+  } catch {
+    // noop
+  }
+  try {
+    if (window.localStorage.getItem(DEMO_BYPASS_KEY) === "true") return true;
+  } catch {
+    // noop
+  }
+  return false;
+}
 
 function useDemoBypass(): boolean {
   const [bypass, setBypass] = useState<boolean>(false);
   useEffect(() => {
-    if (process.env.NEXT_PUBLIC_DEMO_BYPASS_AUTH === "true") {
+    const active = isDemoBypassNow();
+    if (active) {
       setBypass(true);
       try {
         window.localStorage.setItem(DEMO_BYPASS_KEY, "true");
       } catch {
-        // private mode — env-level bypass already engaged for this render
+        // private mode — bypass already engaged for this render
       }
-      return;
-    }
-    try {
-      const params = new URLSearchParams(window.location.search);
-      if (params.get("demo") === "1") {
-        setBypass(true);
-        try {
-          window.localStorage.setItem(DEMO_BYPASS_KEY, "true");
-        } catch {
-          // ignore
-        }
-        return;
-      }
-    } catch {
-      // noop
-    }
-    try {
-      if (window.localStorage.getItem(DEMO_BYPASS_KEY) === "true") {
-        setBypass(true);
-      }
-    } catch {
-      // noop
     }
   }, []);
   return bypass;
@@ -2114,7 +2116,11 @@ export default function ChatPage() {
   const demoBypass = useDemoBypass();
 
   useEffect(() => {
-    if (demoBypass) return;
+    // Synchronous check avoids the race where this effect's closure
+    // captured `demoBypass=false` from the first render before
+    // useDemoBypass had a chance to flip the state, which caused a
+    // brief flash of chat then a router.replace("/login") on Safari.
+    if (demoBypass || isDemoBypassNow()) return;
     if (!loading && !session) {
       router.replace("/login");
     }
