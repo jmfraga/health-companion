@@ -1285,3 +1285,232 @@ Quotable for the post-submission story:
 > the take faithfully shows what the deploy makes possible."*
 
 ---
+
+### Clinical audit landed early + late-night polish (Apr 24 evening into night)
+
+The plan said Saturday morning for the clinical audit. JM moved it
+forward to Friday at 17:30 — *"prefiero desvelarme hoy que estar
+estresado en la fiesta."* The right call. The party is Saturday
+night, the recording is Saturday afternoon, and the buffer for
+Sunday should stay empty.
+
+**Clinical audit — 49 rows, JM in the chair**
+
+`hc-clinical` cross-referenced every row of
+`docs/process/clinical-audit-checklist.md` against the orchestrator
+prompt (`apps/api/src/api/agents/runner.py`) and the cross-ref doc.
+Result: 33 ✅, 11 🟡 reword, 5 🔴 fix. JM walked the punch list
+row-by-row, marked decisions, and committed everything as one clean
+audit:
+
+- **§4 breast** — pulled NCCN v.1.2025 *"start 10 years before the
+  relative's diagnosis, not before age 30"* into the prompt itself
+  (it was previously only in `tools.py`'s guideline table, invisible
+  to the model unless `fetch_guidelines_for_age_sex` fired). Split
+  moderate-elevated risk vs high-risk explicitly with MRI guidance.
+  Added complementary-imaging note (US/MRI on findings or breast
+  density) — JM's call, the kind of thing that lets a patient walk
+  into a callback without being blindsided.
+- **§4 prostate** — quiet error fixed: 50–69 → 55–69 per USPSTF
+  2018 Grade C. Kept the ACS/AUA earlier-start exception (40–45 if
+  Black or first-degree FH).
+- **§3 sanitary interpreter** — six terms the demo will surface
+  added: *first-degree relative, biennial, shared-decision making,
+  co-testing, premenopausal, mammography*. Thirty-second edit, large
+  credibility gain.
+- **§2.5 escalation** — México-aware. *"911 in the US and México;
+  988 in the US for crisis lines, SAPTEL 55-5259-8121 in México."*
+- **§4 diabetes** — added "with overweight or obesity" qualifier
+  per USPSTF 2021.
+- **§4 lipids** — tightened to ACC/AHA cadence vs USPSTF Grade B
+  statin framing (10-yr ASCVD ≥10%).
+- **§4 Lp(a)** — inline source: *"NLA 2019; ESC/EAS 2019."*
+- **§7 reasoning examples** — added a third illustrative example
+  with hereditary-risk shape (47, mother's diagnosis, NCCN×USPSTF
+  combination), with the disclaimer at the bottom protecting against
+  priming. Reduces variance on the demo's load-bearing turn.
+- **§4 cervical** — JM's clinical voice landed cleanly: *"starting
+  at 25 per ACS 2020, or earlier (at 21) if she has been sexually
+  active per USPSTF 2018 / ACOG."*
+- **§4 CAC** — tightened to ACC/AHA 2018 intermediate-risk
+  reclassifier (10-yr ASCVD 7.5–20%) with availability caveat for
+  countries where CAC isn't a routine option.
+
+Committed as `Clinical audit Apr 24 by JMF — orchestrator system
+prompt`. Version stamp on the prompt updated to 2026-04-24.
+
+**Walkthrough validation — Robert, not Laura**
+
+Before we moved on, JM made a sharp observation: *"honestamente no
+sé porque nos enfocamos tanto en el caso de Laura, veamos cualquier
+caso, no?"* He's right — a strong product should hold up on a
+fresh case. We picked **Robert, 51, paternal MI at 49, no doctor
+in 5 years** and ran two turns against the live prod API.
+
+Turn 1 was perfect restraint: warm reflection ("past the age he
+ever reached"), no diagnosis, no plan, one question. Tools fired
+exactly the right ones (name, age, family_history, two memory
+notes), and the model held back on `fetch_guidelines_for_age_sex`
+until a guideline was actually being asserted — exactly per §5.
+
+Turn 2 (Robert asks "what tests?") triggered the full audited
+shape: §3 sanitary interpreter terms surfaced verbatim
+("first-degree relative — a parent, sibling, or child"), §4 Lp(a)
+cited as "NLA 2019, ESC/EAS 2019" inline, §4 CAC framed as
+"ACC/AHA 2018... reasonable tool to help decide whether
+cholesterol-lowering medication is worthwhile... discussion *after*
+the basic numbers are back, not before" — exactly the tightened
+framing from the audit. Prostate correctly *omitted* (Robert is
+51, threshold is 55). 4 screenings scheduled with audited sources.
+The model also gave practical front-desk advice ("mention the
+family history when you book — it gets you a longer slot") that
+felt like the friend-who-knows-health voice the prompt is chasing.
+
+The audit didn't just survive contact with reality; the surface
+text reads *better* than it did before the changes.
+
+**Streaming paragraph break — bug surfaced by the walkthrough**
+
+While reading turn 2, JM noticed two places where paragraph breaks
+were swallowed: *"...we know there's a reason to look carefully.
+"Hold on the symptom..."* and *"...rather than a rushed one.I've
+put those four..."* Investigated raw SSE stream and the deltas
+themselves were clean; the problem was that the orchestrator's
+agentic loop yields message_deltas across **two separate Anthropic
+Message API calls** (pre-tool-use and post-tool-result), and the
+runner never inserted any whitespace between them. The frontend
+concatenated them with no separator.
+
+Fix is one line: yield an explicit `{"type": "message_delta",
+"text": "\n\n"}` between iterations when the previous stream
+emitted any text. Markdown collapses duplicates; trailing breaks
+in tool-only iterations don't render. Caught and committed as its
+own fix so the audit commit stays clean.
+
+**Photo of devices — the 75% that was already done**
+
+Late afternoon JM tested on his phone and noticed: *"aún no
+agregamos lo de subir imágenes de reloj, baumanómetro ni nada de
+eso ni lo de las vacunas... tampoco lo de los hábitos."* The
+honest triage:
+
+- **Photo of device:** 75% already done. Backend (`labs.py`)
+  already accepts JPEG/PNG/WEBP/HEIC and the image prompt explicitly
+  says *"You are reading a photograph the user took with their
+  phone."* What was missing was the affordance: the LabDropZone
+  said "Upload lab results," not "anything readable." A copy
+  rewrite + a "Smartwatch" welcome chip + a one-paragraph nudge
+  to the orchestrator system prompt unlocked the entire flow.
+  Cost: under an hour.
+- **Habits:** already in the schema (`lifestyle.smoker`,
+  `lifestyle.exercise`, `concerns.sleep`, etc.) — captured
+  conversationally, not via a form (intentional). The visibility
+  gap was in the profile panel: a new `HabitsBlock` component
+  surfaces them with the same visual language as screenings, on
+  desktop *and* mobile.
+- **Vaccines:** correctly Phase 1. Added explicitly to the "won't
+  do yet" list in the Hans brief; tracking schedules per CDC ACIP
+  and SSA-MX is real work, and rushing it would mean shallow
+  recommendations in a regulated category.
+
+**Mobile chrome — three small bugs caught in JM's pocket**
+
+- **No top nav on mobile.** Trends, Bridge, Settings, How this
+  works, Privacy, Start fresh, email — all hidden behind
+  `hidden md:inline`. On a phone, only the logo and Simulate
+  button. Added a hamburger menu (mobile-only, custom `useState`
+  + `useRef`, click-outside + Escape to close) that exposes all
+  the same links. Desktop layout untouched.
+- **Title and subtitle truncated on mobile.** Title was `text-lg`
+  with `truncate` and the right side (Simulate + hamburger) ate
+  too much. Switched to `text-base leading-tight` with wrap
+  allowed on small screens; desktop stays `text-xl` with truncate.
+- **Chat column overflow on lab list extraction.** When a long
+  list of biomarkers extracted, the chat column expanded beyond
+  the 1fr grid track and pushed the page right off the viewport.
+  Two-line fix: `min-w-0` on the chat `<section>` (CSS Grid
+  defaults to `min-width: auto` which prevents shrink) and
+  `overflow-x-auto` on the LabTable wrapper. The grid now
+  shrinks properly and a wide table scrolls horizontally inside
+  its bubble.
+
+The first two surfaced because JM tested on his phone before going
+to bed; the third surfaced when he posted real lab values into the
+live build. None of them would have showed up in a desktop-only
+walkthrough.
+
+**Profile photo upload — demo-grade, localStorage**
+
+Approved: a real Avatar component (`apps/web/src/components/profile/
+Avatar.tsx`) reads `hc_profile_photo` from `localStorage` on mount,
+listens for a custom `hc-profile-photo-changed` event for live
+updates, and falls back to first-letter initials when no photo is
+set. Wired into the header, the profile panel (desktop + mobile
+sheet), and the *real-state* row on `/bridge`. The illustrative
+patients on Bridge keep their styled initials so the white-label
+preview still reads as a panel of patients, not as the same face
+repeated.
+
+The upload itself is in `/settings`: native file picker → canvas
+center-crop to 256×256 → JPEG q0.85 → `localStorage`. "Remove
+photo" returns to initials. Inline error if the file is over 10 MB
+or unreadable. SSR-safe (all `localStorage` access inside
+`useEffect`).
+
+This is intentionally *demo-grade* — per-browser, per-device. It
+was the right call: a real backend upload would require persistence
+that doesn't exist yet, and Phase 1's Supabase migration in May
+will swap the read path without touching any consumer surface. The
+limitation ("doesn't sync across your devices") is now in the
+honesty list of the Hans brief.
+
+**Backend hygiene — bumps and safety nets**
+
+Several small changes that keep the demo from breaking on a take:
+
+- `MAX_TOKENS` raised: 6144 → 8192 in `runner.py`, 4096 → 8192 in
+  `simulate.py`. The `effort=high` runs were occasionally bumping
+  the ceiling on long synthesis turns; an extra 2K of headroom
+  removes the risk of mid-sentence truncation during recording.
+  `labs.py` stays at 24576 (already raised today for multimodal).
+- `HC_SKIP_MANAGED_AGENTS_CREATE=true` set on Fly. The frontend
+  uses `/api/simulate-months-later` (Messages API) by default;
+  the `-managed` sibling exists for the side prize ("Best use of
+  Claude Managed Agents"). With the skip flag, the managed
+  endpoint fails cleanly with a warning-level log + a real SSE
+  `error` event when called without provisioned resources, instead
+  of accumulating orphaned Agents on every Fly cold start.
+- `simulate_managed.py` log level: `logger.exception` → `warning`
+  for the cache-miss path; full stack trace preserved for genuine
+  SDK errors.
+- Chat SSE has explicit `{"type": "done"}` safety nets on both
+  the error path (was missing — client would hang) and a final
+  one after snapshots so the stream actually terminates.
+- `fly.toml` `auto_stop_machines: 'suspend' → 'off'`. With the
+  state in-memory, suspending between requests would risk losing
+  whatever the user just told the companion. Always-on is fine
+  on shared-cpu-1x, costs are trivial through Sunday.
+
+**Where we are**
+
+By 21:30 the build is ahead of schedule. The clinical audit was
+supposed to be tomorrow morning; instead, it's done, validated
+against a fresh case, and live in production. The recording window
+tomorrow opens at 14:00 with the prompt already through one round
+of human-MD review and one round of in-the-wild walkthrough. The
+buffer for Sunday morning genuinely *is* a buffer now.
+
+JM's test of the day went one step at a time. The pocket review
+on his phone caught what no laptop walkthrough would have. The
+lab-list overflow caught what no synthetic-fixture walkthrough
+would have. The streaming break caught what no transcript review
+would have. The product is small enough that real use shakes out
+the bugs faster than test plans.
+
+Quotable:
+
+> *"Honestamente no sé porque nos enfocamos tanto en el caso de
+> Laura, veamos cualquier caso, no?"* — JM, walking the team
+> away from a rehearsed demo and into the actual product.
+
+---
