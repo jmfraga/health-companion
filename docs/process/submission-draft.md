@@ -6,7 +6,32 @@
 
 ---
 
-## Draft v1 — 168 words
+## ✅ Draft v4 — preferred (180 words · for Saturday refinement)
+
+JM picked this on Friday night (Apr 24) as the working version to
+refine on Saturday before submit. Two surgical changes from v3:
+(1) "extended thinking exposed as a clinical audit layer" →
+"…as an opt-in clinical audit layer any user can open" (reflects
+that it is a real disclosure, not marketing); (2) "lab reports with
+no OCR in between" → "lab reports, prescription labels, and
+smartwatch screens — no OCR in between" (reflects the multi-source
+ingestion path unlocked Apr 24).
+
+**Health Companion**
+
+The health system today gets paid when you get sick. Hospitals, visits, and pharmacies all run on the engine of illness. Nobody is paid to keep you well.
+
+Health Companion is a wellness product whose only job is to keep people well, in the language they actually speak. Powered by Opus 4.7 with extended thinking exposed as an opt-in clinical audit layer any user can open, multimodal reading of lab reports, prescription labels, and smartwatch screens — no OCR in between — and a living state document that compounds with every visit. It never diagnoses, never prescribes, always refers. A practicing physician authors and reviews every clinical string.
+
+Where care is scarce, the value rises: someone without a family doctor now has a digital one. The next surface is the clinician's: one product, two windows. A companion in the patient's pocket, a structured record on the doctor's desk. The companion does the between-visits work the clinician cannot. The clinician does the in-visit work the companion must not.
+
+Built in five nights with a coordinated team of Claude Code subagents. *Apache 2.0. github.com/jmfraga/health-companion.*
+
+---
+
+## Older drafts — kept for reference
+
+### Draft v1 — 168 words
 
 **Health Companion**
 
