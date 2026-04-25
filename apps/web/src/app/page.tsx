@@ -654,14 +654,18 @@ function ChatExperience() {
   // Opt-in: off by default, enabled from /settings. When off the "See
   // reasoning" buttons hide. The reasoning itself still streams into
   // ReasoningSheet state and stays in the per-message audit record.
-  const [showReasoning, setShowReasoning] = useState<boolean>(false);
+  // Default ON so judges and first-time visitors see the "See reasoning"
+  // disclosure without having to flip a toggle in /settings. Only
+  // explicitly disabling it ("false" in storage) hides the link. Server-
+  // side render starts with true to match the post-mount default.
+  const [showReasoning, setShowReasoning] = useState<boolean>(true);
   useEffect(() => {
     const read = () => {
       try {
         const raw = window.localStorage.getItem("hc:showReasoning");
-        setShowReasoning(raw === "true");
+        setShowReasoning(raw !== "false");
       } catch {
-        setShowReasoning(false);
+        setShowReasoning(true);
       }
     };
     read();

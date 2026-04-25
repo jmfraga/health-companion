@@ -51,7 +51,10 @@ async function resizeToDataUrl(file: File): Promise<string> {
 }
 
 export default function SettingsPage() {
-  const [showReasoning, setShowReasoning] = useState<boolean>(false);
+  // Default ON — matches the chat-page default so the toggle reflects
+  // what a fresh visitor actually sees. Only an explicit "false" in
+  // localStorage flips it off.
+  const [showReasoning, setShowReasoning] = useState<boolean>(true);
   const [hydrated, setHydrated] = useState(false);
 
   // Photo state
@@ -62,7 +65,8 @@ export default function SettingsPage() {
   useEffect(() => {
     try {
       const raw = window.localStorage.getItem(REASONING_KEY);
-      if (raw !== null) setShowReasoning(raw === "true");
+      // Only an explicit "false" turns it off; null/missing = ON.
+      setShowReasoning(raw !== "false");
     } finally {
       setHydrated(true);
     }
