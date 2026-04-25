@@ -43,27 +43,13 @@ export default function LoginPage() {
     }
   }, []);
 
-  const handleDemo = useCallback(async () => {
+  // Demo path — bypass Supabase entirely. Lands at "/?demo=1" which the
+  // ChatPage's useDemoBypass() honours. Survives any Google OAuth /
+  // Supabase Anonymous misconfiguration; the judge always has a way in.
+  const handleDemo = useCallback(() => {
     setError(null);
     setBusy("demo");
-    try {
-      const { error: signInError } = await supabase.auth.signInAnonymously();
-      if (signInError) {
-        setError(
-          signInError.message.includes("disabled") ||
-            signInError.message.toLowerCase().includes("anonymous")
-            ? "Demo access isn't enabled yet. Ask Juan Manuel to turn on Anonymous sign-ins in Supabase."
-            : signInError.message
-        );
-        setBusy(null);
-        return;
-      }
-      router.replace("/");
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      setError(message);
-      setBusy(null);
-    }
+    router.replace("/?demo=1");
   }, [router]);
 
   return (
@@ -166,15 +152,18 @@ export default function LoginPage() {
             delete everything, anytime.
           </p>
 
-          <div className="mt-5 border-t border-zinc-100 pt-4 text-center">
+          <div className="mt-5 border-t border-zinc-100 pt-4">
             <button
               type="button"
               onClick={handleDemo}
               disabled={busy !== null}
-              className="text-[12px] font-medium text-zinc-500 underline-offset-4 transition hover:text-zinc-700 hover:underline disabled:cursor-not-allowed disabled:opacity-60"
+              className="flex min-h-[44px] w-full items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 px-4 text-[14px] font-medium text-emerald-800 transition hover:bg-emerald-100 active:bg-emerald-200 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {busy === "demo" ? "Entering…" : "Enter as demo user"}
+              {busy === "demo" ? "Entering…" : "Continue as demo (no sign-in)"}
             </button>
+            <p className="mt-2 text-center text-[11px] text-zinc-500">
+              For the hackathon walkthrough — no account, no data stored.
+            </p>
           </div>
         </div>
 
