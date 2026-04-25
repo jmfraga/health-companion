@@ -1514,3 +1514,128 @@ Quotable:
 > away from a rehearsed demo and into the actual product.
 
 ---
+
+### Saturday morning · Hans's S25 review and the polish cascade (Apr 25)
+
+Hans got the URL last night and tested on a Samsung S25 over breakfast.
+Three reports came back: *"en mobile no ajusta bonito el menu… y no me
+deja cargar archivos… ni procesa el texto del chat."* Two of those
+were a single root cause, one was real.
+
+**Backend was down.** Fly's free trial had silently expired
+overnight; every `/health` and `/api/*` call was returning 502
+*("trial has ended, please add a credit card")*. JM put a card on the
+file at https://fly.io/trial and the machine came back online inside
+a minute. None of yesterday's deploys had broken anything — Hans's
+testing window had just unfortunately landed inside a billing gap.
+Lesson: keep one eye on the platform before blaming the build.
+
+**The mobile nav bug was real.** The hamburger dropdown was
+positioned `absolute right-0 top-full` inside a `flex shrink-0`
+container — on Android Chrome the layout context shifted enough that
+the panel rendered with its left edge clipping past the viewport ("rends",
+"he Bridge", "ettings" instead of full labels). And the user `?`
+avatar fallback was leaking onto mobile despite a `hidden md:inline-flex`
+class — Tailwind v4 cascade was letting Avatar's own internal
+`inline-flex` win over the consumer's `hidden`. Both fixed:
+dropdown switched to `fixed right-3 top-14` (viewport-relative,
+container-agnostic), and the Avatar got wrapped in a div that
+carries the visibility class so the rule applies to the wrapper
+not via class merging.
+
+**Polish pass before the recording.** Once the urgent stuff was clear,
+the rest of the morning was a deliberate sweep through the things
+that read as "rough" to a fresh judge:
+
+- Avatar fallback: `?` → lucide `User` icon when no name. Initials
+  still surface when name is captured.
+- Sign out gated behind `user?.email && !demoBypass`. Judges hitting
+  `?demo=1` no longer see a button they can't act on; real signed-in
+  users still see it.
+- Error UI replaced with a soft amber toast at top-center
+  (auto-dismiss 4s) instead of red inline panels in the chat
+  transcript and the LabDropZone. The existing `freshToast` (used by
+  Start fresh) was left untouched — added a sibling `errorToast`
+  state next to it.
+- Loading skeletons on `/trends` (4 pulsing cards in the same grid)
+  and `/bridge` (3-line skeleton inside the amber "prepared for
+  next visit" box, only when the real-state patient is selected).
+- Reasoning toggle defaulted to ON — judges now see the "See
+  reasoning" disclosure on first paint, no `/settings` round-trip
+  needed. Explicit `"false"` in localStorage still respects user
+  control.
+- Login page got a primary emerald "Continue as demo (no sign-in)"
+  CTA that navigates straight to `/?demo=1`. Google OAuth needs
+  Supabase Dashboard + Google Cloud Console redirect-URI work that
+  is post-submit territory; the demo path covers any judge who
+  doesn't want to sign in (or hits the OAuth flow with it broken).
+
+**Smoke test that the photo-of-device path actually works.** Backend
+has accepted JPEG/PNG/WEBP/HEIC at `/api/ingest-pdf` since Sprint 3,
+but no end-to-end test against production with a real image had
+ever happened. Hans tried a PNG when Fly was down and saw "Failed
+to fetch", which left it ambiguous. Generated a synthetic JPEG with
+PIL (Total Cholesterol 198, LDL 132, HDL 54, Triglycerides 155,
+Fasting Glucose 104, HbA1c 5.6), POSTed via curl to `/api/ingest-pdf`,
+captured the SSE stream. Result: **green.** Three phase events
+fired (`opening_pdf` → `extracting_values` → `drafting_response`;
+the fourth `cross_referencing` only fires when `save_profile_field`
+is called, which is correct for a label-less synthetic). All six
+biomarkers extracted with the exact values from the image. Snapshot
+populated, timeline entry recorded, `done` event emitted. The
+"Smartwatch" welcome chip is honest — JM can narrate the photo
+capability in the recording with confidence.
+
+**Demo-script aligned with the audited prompt.** Cross-ref caught
+three misalignments. Critical: the script narrated *"NCCN, ten
+years before the relative's diagnosis, **or 40, whichever is
+later**"* but the prompt now says *"not before age 30"*. A clinician
+judge who knows NCCN would catch the contradiction. Script edited
+to *"but not before age 30"* — the math still lands (52 − 10 = 42,
+Laura at 44 is inside either window). Two other tweaks: removed
+*"the same pattern the product uses"* from the closing line (the
+product is single-orchestrator with tool use, not multi-agent;
+the *building* used Claude Code subagents, that was the real
+referent), and softened *"she turns 45 next month"* in Act 2
+narration to *"things she actually told it — her mother, her
+age, the mammography they agreed on"* so the take doesn't depend
+on the model spontaneously mentioning a birthday it might not.
+
+**Welcome card polish.** Added a fourth chip back — *"Labs · Just
+got my labs back. Can we look at them together?"* — between
+Longevity and Smartwatch. Now the four chips telegraph the four
+entry surfaces: emotional concern, life-stage, document upload,
+device photo. Added a `hc-fade-up` keyframe and staggered the
+chips at 80ms each so the welcome card doesn't render as a
+silent block. And a one-line nudge above the chips: *"Or drop a
+lab PDF or a photo of any reading right into the chat"* — directly
+visible from cold open, reinforcing what the smartwatch chip
+hints at indirectly.
+
+**Recording runbook.** Wrote `docs/process/recording-runbook.md` —
+the operations document JM follows tomorrow afternoon. Time-blocked
+from 13:30 sit-down through 15:20 done, with the exact terminal
+commands, browser config, audio dry-run, take protocol, mid-take
+recovery, upload metadata, post-recording journal step, and
+Sunday's submit form fields. Pairs with the demo-script (the
+words) and the demo-preflight script (the state). The runbook is
+the thing that makes the take faithful to what the deploy makes
+possible — so JM can sit down, follow the timeline, and the
+muscle memory does the rest.
+
+**Where we are, end of Saturday morning.** Production is live, the
+clinical audit landed yesterday and survived contact with both an
+in-the-wild test (Hans on his phone) and an automated smoke
+(synthetic photo). The recording window opens in three hours with
+the take supported by a pre-flight script, a runbook, an aligned
+script, and two days of pre-checked surfaces. The buffer for
+Sunday morning genuinely is a buffer — there's no known
+demo-affecting bug left.
+
+Quotable:
+
+> *"It's the platform, not the build."* — what the morning
+> taught about diagnosing 502s before second-guessing your own
+> commits.
+
+---

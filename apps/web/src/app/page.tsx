@@ -450,6 +450,10 @@ const WELCOME_EXAMPLES: { label: string; text: string }[] = [
     text: "I'm 52 with my first grandkid coming. I want to stick around.",
   },
   {
+    label: "Labs",
+    text: "Just got my labs back. Can we look at them together?",
+  },
+  {
     label: "Smartwatch",
     text: "Here's a photo of my Apple Watch screen — help me read it.",
   },
@@ -488,14 +492,18 @@ function WelcomeCard({
       <p className="mt-2 text-[14.5px] leading-[1.55] text-zinc-800">
         Tell me a little about you. What&rsquo;s been on your mind?
       </p>
-      <div className="mt-4 flex flex-wrap gap-2">
-        {WELCOME_EXAMPLES.map((ex) => (
+      <p className="mt-3 text-[12.5px] leading-[1.55] text-zinc-500">
+        Or drop a lab PDF or a photo of any reading right into the chat.
+      </p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {WELCOME_EXAMPLES.map((ex, i) => (
           <button
             key={ex.label}
             type="button"
             onClick={() => onPickExample(ex.text)}
             aria-label={ex.text}
-            className="group inline-flex max-w-full items-start gap-2 rounded-2xl border border-zinc-200 bg-white px-3.5 py-2 text-left text-[13px] leading-snug text-zinc-700 transition hover:border-emerald-200 hover:bg-emerald-50/40 hover:text-zinc-900"
+            style={{ animationDelay: `${i * 80}ms` }}
+            className="hc-fade-up group inline-flex max-w-full items-start gap-2 rounded-2xl border border-zinc-200 bg-white px-3.5 py-2 text-left text-[13px] leading-snug text-zinc-700 transition hover:border-emerald-200 hover:bg-emerald-50/40 hover:text-zinc-900"
           >
             <span className="mt-0.5 inline-flex shrink-0 rounded-full border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-zinc-500 group-hover:border-emerald-200 group-hover:text-emerald-700">
               {ex.label}

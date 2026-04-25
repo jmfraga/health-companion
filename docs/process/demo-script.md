@@ -83,10 +83,10 @@ Wait for the ScheduleCard to render.
 
 Click **See reasoning** on the ScheduleCard. ReasoningSheet opens.
 
-> *"And Laura can see the reasoning. USPSTF, biennial from 40. NCCN, ten
-> years before the first-degree relative's diagnosis, or 40, whichever
-> is later. Fifty-two minus ten is forty-two. Laura is forty-four. She
-> is already inside the window."*
+> *"And Laura can see the reasoning. USPSTF, biennial from 40. NCCN,
+> ten years before the first-degree relative's diagnosis, but not
+> before age 30. Fifty-two minus ten is forty-two. Laura is
+> forty-four. She is already inside the window."*
 >
 > *"No diagnosis. No prescription. Education, contextualization,
 > referral to her doctor. The clinical voice is authored and audited by
@@ -124,11 +124,10 @@ MonthsLaterFade runs.
 ProactiveLetter renders with the greeting and pill-tags.
 
 > *"The companion reaches out. Not because Laura asked. Because it has
-> been keeping count. It references the conversation about her mother
-> from day one. It remembers she turns 45 next month. It recalls the
-> mammography they agreed on, and it shows Laura exactly what it has
-> been holding onto — the pill-tags on the amber card are the things
-> they talked about the first day."*
+> been keeping count. It references things she actually told it — her
+> mother, her age, the mammography they agreed on. It shows Laura
+> exactly what it has been holding onto — the pill-tags on the amber
+> card are the things they talked about the first day."*
 >
 > *"This is the moat every other health product does not have. Not
 > search. Not a symptom checker. A relationship that compounds."*
@@ -163,9 +162,9 @@ Navigate to `/bridge`.
 
 Cut back to the chat or stay on the Bridge.
 
-> *"Version zero-point-one. Built in five nights with Opus 4.7 —
-> coordinator and specialists, the same pattern the product uses. Open
-> source, Apache 2.0, every guideline cited inline. Health Companion."*
+> *"Version zero-point-one. Built in five nights with Opus 4.7 and a
+> coordinated team of Claude Code subagents. Open source, Apache 2.0,
+> every guideline cited inline. Health Companion."*
 
 Fade to card: logo + tagline + repo URL.
 

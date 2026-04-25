@@ -190,3 +190,13 @@
 .hc-pulse {
   animation: hc-pulse 1.2s ease-in-out infinite;
 }
+
+/* Welcome-card chip stagger entry — first thing a judge sees on /. */
+@keyframes hc-fade-up {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.hc-fade-up {
+  opacity: 0;
+  animation: hc-fade-up 400ms ease-out forwards;
+}
