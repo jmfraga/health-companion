@@ -236,6 +236,7 @@ export default function BridgePage() {
   const [timeline, setTimeline] = useState<TimelineEntry[]>([]);
   const [series, setSeries] = useState<Record<string, TrendSeries>>({});
   const [selectedId, setSelectedId] = useState<string>("real");
+  const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -262,6 +263,8 @@ export default function BridgePage() {
         }
       } catch {
         // noop — empty Bridge still renders with the illustrative panel.
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     })();
     return () => {
@@ -518,18 +521,30 @@ export default function BridgePage() {
                 >
                   Prepared for {firstName(selected.name)}&rsquo;s next visit
                 </p>
-                <ul className="space-y-1.5 text-sm text-zinc-800">
-                  {(selected.preparedBullets ?? []).map((b, i) => (
-                    <li key={i} className="flex gap-2">
-                      <span
-                        aria-hidden
-                        className="mt-[8px] inline-block h-1 w-1 shrink-0 rounded-full"
-                        style={{ background: "var(--hc-amber-fg)" }}
-                      />
-                      <span>{b}</span>
-                    </li>
-                  ))}
-                </ul>
+                {loading && selected.useRealState ? (
+                  <div
+                    className="space-y-2"
+                    aria-label="Loading prepared bullets"
+                    aria-busy="true"
+                  >
+                    <div className="h-3 w-11/12 animate-pulse rounded bg-amber-100/70" />
+                    <div className="h-3 w-9/12 animate-pulse rounded bg-amber-100/70" />
+                    <div className="h-3 w-10/12 animate-pulse rounded bg-amber-100/70" />
+                  </div>
+                ) : (
+                  <ul className="space-y-1.5 text-sm text-zinc-800">
+                    {(selected.preparedBullets ?? []).map((b, i) => (
+                      <li key={i} className="flex gap-2">
+                        <span
+                          aria-hidden
+                          className="mt-[8px] inline-block h-1 w-1 shrink-0 rounded-full"
+                          style={{ background: "var(--hc-amber-fg)" }}
+                        />
+                        <span>{b}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
             </div>
 

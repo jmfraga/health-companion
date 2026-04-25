@@ -11,17 +11,19 @@
  * `name` (or "?" when name is absent).
  */
 
+import { User } from "lucide-react";
 import { useEffect, useState } from "react";
 
 const LS_KEY = "hc_profile_photo";
 const CHANGE_EVENT = "hc-profile-photo-changed";
 
-function initials(name?: string): string {
-  if (!name?.trim()) return "?";
+function initialsOrNull(name?: string): string | null {
+  if (!name?.trim()) return null;
   const parts = name.trim().split(/\s+/);
   const first = parts[0]?.[0] ?? "";
   const second = parts.length > 1 ? parts[1][0] : "";
-  return (first + second).toUpperCase();
+  const value = (first + second).toUpperCase();
+  return value || null;
 }
 
 export function Avatar({
@@ -70,6 +72,8 @@ export function Avatar({
     );
   }
 
+  const initials = initialsOrNull(name);
+
   return (
     <span
       role="img"
@@ -77,7 +81,13 @@ export function Avatar({
       className={`inline-flex shrink-0 items-center justify-center rounded-full bg-zinc-200 font-semibold text-zinc-600 ${className}`}
       style={{ width: size, height: size, fontSize }}
     >
-      {initials(name)}
+      {initials ?? (
+        <User
+          size={Math.round(size * 0.5)}
+          strokeWidth={1.6}
+          aria-hidden
+        />
+      )}
     </span>
   );
 }

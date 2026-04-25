@@ -121,9 +121,23 @@ export default function TrendsPage() {
       </div>
 
       {loading && (
-        <p className="font-mono text-xs uppercase tracking-[0.08em] text-zinc-400">
-          Loading…
-        </p>
+        <div
+          className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3"
+          aria-label="Loading trends"
+          aria-busy="true"
+        >
+          {[0, 1, 2, 3].map((i) => (
+            <div
+              key={i}
+              className="animate-pulse rounded-2xl border border-zinc-200 bg-white p-5"
+            >
+              <div className="h-3.5 w-28 rounded bg-zinc-200" />
+              <div className="mt-2 h-3 w-20 rounded bg-zinc-100" />
+              <div className="mt-4 h-24 rounded-lg bg-zinc-100" />
+              <div className="mt-3 h-2.5 w-3/5 rounded bg-zinc-100" />
+            </div>
+          ))}
+        </div>
       )}
 
       {error && (

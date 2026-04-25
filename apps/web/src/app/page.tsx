@@ -598,6 +598,7 @@ function BottomSheet({
 function ChatExperience() {
   const { user, signOut } = useAuth();
   const router = useRouter();
+  const demoBypass = useDemoBypass();
 
   const handleSignOut = useCallback(async () => {
     await signOut();
@@ -627,7 +628,7 @@ function ChatExperience() {
     setRecentlyAddedTimeline(new Set());
     setReasoningActiveIndex(null);
     setReasoningSheetMsg(null);
-    setError(null);
+    setErrorToast(null);
     setInput("");
     setFreshToast("Starting a fresh thread — nothing stored.");
   }, []);
@@ -647,7 +648,6 @@ function ChatExperience() {
   );
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [reasoningActiveIndex, setReasoningActiveIndex] = useState<number | null>(null);
   const [reasoningSheetMsg, setReasoningSheetMsg] =
     useState<ChatMessage | null>(null);
@@ -682,6 +682,16 @@ function ChatExperience() {
     const t = setTimeout(() => setFreshToast(null), 2400);
     return () => clearTimeout(t);
   }, [freshToast]);
+  // Soft, non-blocking surface for transient backend hiccups.
+  // Replaces the previous red inline error block in the chat transcript
+  // and the LabDropZone red box. Auto-dismiss is longer (4s) than the
+  // success toast because errors merit reading.
+  const [errorToast, setErrorToast] = useState<string | null>(null);
+  useEffect(() => {
+    if (!errorToast) return;
+    const t = setTimeout(() => setErrorToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [errorToast]);
   const [fadeLabel, setFadeLabel] = useState("3 months later");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const mobileMenuRef = useRef<HTMLDivElement | null>(null);
@@ -1059,7 +1069,7 @@ function ChatExperience() {
       } else if (event.type === "reasoning_stop") {
         setReasoningActiveIndex(null);
       } else if (event.type === "error") {
-        setError(event.message);
+        setErrorToast(event.message);
       }
     },
     [flashField, flashScreening, flashTimeline]
@@ -1084,7 +1094,7 @@ function ChatExperience() {
     setMessages(nextMessages);
     setInput("");
     setBusy(true);
-    setError(null);
+    setErrorToast(null);
 
     // Placeholder for the streamed assistant reply.
     setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
@@ -1141,7 +1151,7 @@ function ChatExperience() {
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      setError(message);
+      setErrorToast(message);
     } finally {
       setBusy(false);
       setReasoningActiveIndex(null);
@@ -1154,7 +1164,7 @@ function ChatExperience() {
 
   const onLabStart = useCallback((file: File) => {
     setBusy(true);
-    setError(null);
+    setErrorToast(null);
     setSheet(null);
     setMessages((prev) => [
       ...prev,
@@ -1174,7 +1184,7 @@ function ChatExperience() {
   );
 
   const onLabError = useCallback((msg: string) => {
-    setError(msg);
+    setErrorToast(msg);
   }, []);
 
   const onLabDone = useCallback(() => {
@@ -1189,7 +1199,7 @@ function ChatExperience() {
   const runSimulate = useCallback(async () => {
     if (busy) return;
     const months = 3;
-    setError(null);
+    setErrorToast(null);
     setBusy(true);
 
     try {
@@ -1238,7 +1248,7 @@ function ChatExperience() {
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      setError(message);
+      setErrorToast(message);
     } finally {
       setBusy(false);
       setReasoningActiveIndex(null);
@@ -1473,14 +1483,16 @@ function ChatExperience() {
                 size={32}
               />
             </div>
-            <button
-              type="button"
-              onClick={() => void handleSignOut()}
-              aria-label="Sign out"
-              className="inline-flex min-h-[36px] items-center rounded-full border border-zinc-200 bg-white px-3 text-xs font-medium text-zinc-600 transition hover:bg-zinc-50 active:bg-zinc-100"
-            >
-              Sign out
-            </button>
+            {user?.email && !demoBypass && (
+              <button
+                type="button"
+                onClick={() => void handleSignOut()}
+                aria-label="Sign out"
+                className="inline-flex min-h-[36px] items-center rounded-full border border-zinc-200 bg-white px-3 text-xs font-medium text-zinc-600 transition hover:bg-zinc-50 active:bg-zinc-100"
+              >
+                Sign out
+              </button>
+            )}
           </div>
         </div>
       </header>
@@ -1493,6 +1505,18 @@ function ChatExperience() {
         >
           <div className="rounded-full border border-emerald-200 bg-emerald-50 px-4 py-1.5 text-xs font-medium text-emerald-800 shadow-sm">
             {freshToast}
+          </div>
+        </div>
+      )}
+
+      {errorToast && (
+        <div
+          role="alert"
+          aria-live="assertive"
+          className="pointer-events-none fixed left-1/2 top-20 z-50 max-w-[min(90vw,520px)] -translate-x-1/2 transform"
+        >
+          <div className="rounded-full border border-amber-200 bg-amber-50 px-4 py-1.5 text-center text-xs font-medium text-amber-900 shadow-sm">
+            {errorToast}
           </div>
         </div>
       )}
@@ -1702,11 +1726,6 @@ function ChatExperience() {
                 </div>
               );
             })}
-            {error && (
-              <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-xs text-red-700">
-                {error}
-              </div>
-            )}
           </div>
 
           {/* Mobile-only pills row (above composer) */}
@@ -1795,7 +1814,7 @@ function ChatExperience() {
                   if (typeof window !== "undefined" && window.innerWidth < 768) {
                     setSheet("upload");
                   } else {
-                    setError(
+                    setErrorToast(
                       "To upload labs, drop a PDF into the panel on the right."
                     );
                   }

@@ -570,11 +570,7 @@ export function LabDropZone({
         />
       )}
 
-      {localError && !busy && (
-        <div className="mt-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-[12px] text-red-700">
-          {localError}
-        </div>
-      )}
+      {/* Errors surface via the parent-level toast (onError callback). */}
     </div>
   );
 }
