@@ -648,3 +648,10 @@ async def run_chat_turn(messages: list[dict[str, Any]]) -> AsyncIterator[dict[st
                 yield {"type": "tool_result", "id": tu["id"], "error": str(exc)}
 
         messages.append({"role": "user", "content": tool_results})
+
+        # Paragraph break between agentic-loop iterations: the model's
+        # pre-tool narration and post-tool continuation arrive as separate
+        # message_delta streams; without an explicit boundary the frontend
+        # concatenates them and swallows the natural paragraph break.
+        if text_buffer:
+            yield {"type": "message_delta", "text": "\n\n"}
