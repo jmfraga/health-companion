@@ -2059,22 +2059,48 @@ function ChatSkeleton() {
   );
 }
 
-// Demo bypass — for a judge hitting `?demo=1` (or any build compiled with
-// NEXT_PUBLIC_DEMO_BYPASS_AUTH=true) we skip the Supabase session guard and
-// render ChatExperience immediately. Keeps the cold-entry experience truly
-// one-click and survives any future flakiness in the Supabase session
-// hand-off. No backend auth headers are forged — the chat endpoint is
-// tolerant of missing tokens in the demo-only deployment.
+// Demo bypass — three signals turn it on, in priority order:
+// 1. process.env.NEXT_PUBLIC_DEMO_BYPASS_AUTH === "true" (build-time)
+// 2. ?demo=1 in the current URL (intent for this session)
+// 3. localStorage flag set by either of the above on a previous visit
+//
+// Once activated, the bypass is sticky for the browser tab/window —
+// without that, navigating away from `/?demo=1` to `/trends` and
+// pressing back would land the user on `/login` because the next `/`
+// hit no longer has the URL param. Sticky state preserves the demo
+// posture across internal navigation and back-button history.
+const DEMO_BYPASS_KEY = "hc_demo_bypass";
+
 function useDemoBypass(): boolean {
   const [bypass, setBypass] = useState<boolean>(false);
   useEffect(() => {
     if (process.env.NEXT_PUBLIC_DEMO_BYPASS_AUTH === "true") {
       setBypass(true);
+      try {
+        window.localStorage.setItem(DEMO_BYPASS_KEY, "true");
+      } catch {
+        // private mode — env-level bypass already engaged for this render
+      }
       return;
     }
     try {
       const params = new URLSearchParams(window.location.search);
-      if (params.get("demo") === "1") setBypass(true);
+      if (params.get("demo") === "1") {
+        setBypass(true);
+        try {
+          window.localStorage.setItem(DEMO_BYPASS_KEY, "true");
+        } catch {
+          // ignore
+        }
+        return;
+      }
+    } catch {
+      // noop
+    }
+    try {
+      if (window.localStorage.getItem(DEMO_BYPASS_KEY) === "true") {
+        setBypass(true);
+      }
     } catch {
       // noop
     }
