@@ -9,14 +9,16 @@ years, available to everyone.
 
 ## Status
 
-**Last updated:** 2026-04-24 (Friday night, deploy day).
+**Last updated:** 2026-04-25 (Saturday — clinical audit landed,
+photo-of-device path validated end-to-end, mobile chrome polished
+for Android Chrome / iOS Safari, demo bypass made sticky).
 
 Submission for the **Built with Opus 4.7** hackathon (April 21–26, 2026).
 Submission deadline: Sunday, 2026-04-26 at 7:00 PM CDMX.
 
 **Live URLs:**
 
-- **App** → [`https://health-companion-five.vercel.app`](https://health-companion-five.vercel.app) (add `?demo=1` to skip auth).
+- **App** → [`https://health-companion-five.vercel.app/?demo=1`](https://health-companion-five.vercel.app/?demo=1) — one click in. The `?demo=1` flag is sticky, so Trends ↔ Bridge round-trips don't bounce you to /login.
 - **API** → [`https://hc-companion-api.fly.dev`](https://hc-companion-api.fly.dev) (`/health`, `/api/demo/reset`, `/api/trends/seed-demo` all live).
 
 What's working today: cold-open chat with welcome card and example
@@ -74,9 +76,13 @@ Say hello, and tell it something about you — your age, a health goal, a
 lab result you don't fully understand. The profile panel fills in as
 you talk; the timeline builds as facts accumulate; every screening
 recommendation cites the guideline it comes from and can be audited via
-the opt-in **See reasoning** disclosure (toggle it on at `/settings`).
-Three example prompts are one click away on the empty state for a
-faster first-touch.
+the **See reasoning** disclosure (on by default for new visitors;
+toggle in `/settings` if you'd rather hide it). Four example chips —
+sleep, longevity, labs, smartwatch — sit on the empty state, each
+one clickable and editable before you send. You can also drop a lab
+PDF or a photo of any device screen (smartwatch, blood pressure cuff,
+prescription label) directly into the conversation — Opus 4.7 reads
+it without an OCR layer in between.
 
 If you want to see what three months of data looks like on a real arc,
 `/trends` ships a one-click fixture (the "demo arc") so the longitudinal
