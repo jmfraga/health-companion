@@ -1827,4 +1827,29 @@ Quotables:
 > myself."* — the demo's close. The shortest, truest thesis the
 > product has.
 
+#### Time-on-task — for the record
+
+After submit, JM asked the obvious question: *"how many hours did
+we actually spend on this?"* The git log gave a lower bound — 63
+commits across six days, with the per-day spans below. Non-coding
+work (the clinical audit walkthrough, the voice clone, the
+Camtasia edit, the Suno render, the recording itself) doesn't show
+up in commits but was real time too.
+
+| Day | Commit span | Estimated focused hours | Notes |
+|---|---|---|---|
+| Mon Apr 21 | 18:05 → 23:49 | ~6h | Late start (kickoff missed); long night for Act 1 |
+| Tue Apr 22 | 06:51 → 21:19 | ~10h | Hans feedback, Claude Design handoff, photo ingestion |
+| Wed Apr 23 | 07:00 → 20:05 | ~10h | /trends, Bridge preview, Laura purge, ROADMAP §18 |
+| Thu Apr 24 | 08:06 → 19:20 | ~11h | Production deploy + clinical audit row-by-row |
+| Fri Apr 25 | 09:35 → 11:37 | ~5h | Hans S25 review + polish + login fallback (early stop — 50th birthday party at night) |
+| Sun Apr 26 | 09:25 → 15:51 | ~8h | Pivot to JM narrative, practice run, recording, voice, music, render, submit |
+| **Total** | | **~50h / 6 days** | ~8.3h/day average |
+
+For a practicing primary-care physician with a working clinical
+practice and an oncology center to direct in parallel, that's a
+high-intensity 50 hours. The "team of subagents" architecture
+made it feel less than it actually was — but the calendar was
+what it was.
+
 ---
