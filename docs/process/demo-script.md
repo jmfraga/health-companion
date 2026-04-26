@@ -37,8 +37,9 @@ Opening frame: empty chat, welcome card, four example chips.
 > *"The health system today gets paid when you get sick. Nobody is paid
 > to keep you well."*
 >
-> *"Eric Topol wrote that idea ten years ago. This is our answer —
-> Health Companion."*
+> *"Eric Topol wrote that idea ten years ago. This isn't a tool that
+> makes the visit better. This is a tool that makes you well enough
+> that the visit becomes a check-in, not a rescue. Health Companion."*
 
 Camera on the empty chat, chips visible (Sleep · Longevity · Labs · Smartwatch), cursor in composer.
 
@@ -201,10 +202,12 @@ to narrate it; it's clear at a glance.
 
 Cut back to the chat, or stay on the Bridge.
 
-> *"Built in five nights with Opus 4.7 and a coordinated team of Claude
-> Code subagents. Open source, Apache 2.0, every guideline cited
-> inline. I built it because, sitting in front of fifty, I wanted it
-> for myself. Health Companion."*
+> *"Most health products live around the visit — before it, after it,
+> instead of it. This one lives between visits, in the years when
+> nothing is happening yet — the years that decide everything. Built
+> in five nights with Opus 4.7. Open source, Apache 2.0. I built it
+> because, sitting in front of fifty, I wanted it for myself. Health
+> Companion."*
 
 Fade to card: logo + tagline + repo URL.
 

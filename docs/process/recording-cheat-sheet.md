@@ -97,7 +97,7 @@ Navigate to `/bridge`:
 
 Cut back to chat, or stay on Bridge:
 
-- *"Built in five nights with Opus 4.7 and a coordinated team of Claude Code subagents. Open source, Apache 2.0, every guideline cited inline. I built it because, sitting in front of fifty, I wanted it for myself. Health Companion."*
+- *"Most health products live around the visit — before it, after it, instead of it. This one lives between visits, in the years when nothing is happening yet — the years that decide everything. Built in five nights with Opus 4.7. Open source, Apache 2.0. I built it because, sitting in front of fifty, I wanted it for myself. Health Companion."*
 
 Fade to repo URL card.
 
