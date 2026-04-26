@@ -187,7 +187,9 @@ Navigate to `/bridge`.
 > view. The clinician sees every patient between visits: goals, trends,
 > flags. The note the doctor writes in clinical language gets
 > auto-translated into what the patient actually reads. White-label —
-> every clinic brands their own."*
+> every clinic brands their own. Built especially for places like
+> México, where most people don't have a family doctor — where having
+> a digital one matters more, not less."*
 
 > *"One product. Two surfaces. The companion does the between-visits
 > work the clinician cannot. The clinician does the in-visit work the
@@ -205,8 +207,9 @@ Cut back to the chat, or stay on the Bridge.
 > *"Most health products live around the visit — before it, after it,
 > instead of it. This one lives between visits, in the years when
 > nothing is happening yet — the years that decide everything. Built
-> in five nights with Opus 4.7. Open source, Apache 2.0. I built it
-> because, sitting in front of fifty, I wanted it for myself. Health
+> in five nights with Opus 4.7. Open source, Apache 2.0. Built for the
+> places that need it most — México, where most people don't have a
+> family doctor. Built for me, sitting in front of fifty. Health
 > Companion."*
 
 Fade to card: logo + tagline + repo URL.
