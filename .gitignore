@@ -187,3 +187,11 @@ tmp/
 # Deploy helpers with plaintext secrets — never commit.
 .deploy-fly-secrets.sh
 .deploy-*.sh
+
+# Video production assets — heavy binaries kept locally, scripts in git.
+# The final video lives publicly on YouTube; the source clips and
+# Camtasia project are too heavy for the repo (~1 GB combined).
+video/Assets/
+video/*.cmproj/
+video/*.mp4
+video/.DS_Store

@@ -1,0 +1,156 @@
+GUION ELEVEN LABS — Health Companion · TTS prompt
+==================================================
+
+Para usar con tu voz clonada (Voice Lab → Instant Voice Clone o
+Professional Voice Clone). Este guion está formateado para el motor
+de ElevenLabs — usa <break time> tags para controlar pausa, y los
+números delicados se escriben como se pronuncian.
+
+
+╔══════════════════════════════════════════════════════════════════╗
+║  CONFIGURACIÓN RECOMENDADA                                       ║
+╠══════════════════════════════════════════════════════════════════╣
+║                                                                  ║
+║  Model:  eleven_multilingual_v2  (mejor para acento neutro       ║
+║          inglés con base hispanohablante)                        ║
+║                                                                  ║
+║  Voice settings:                                                 ║
+║    Stability:        0.45   (algo de variación natural)          ║
+║    Similarity boost: 0.85   (que se parezca a ti, fuerte)        ║
+║    Style exaggeration: 0.20 (sutil — narración, no actuación)    ║
+║    Speaker boost:    ON                                          ║
+║                                                                  ║
+║  Si total dura > 3:00 al renderear, baja Stability a 0.35 y      ║
+║  el modelo habla un poco más rápido de forma natural.            ║
+║                                                                  ║
+║  Genera en UN SOLO take si tu plan lo permite (mejor coherencia  ║
+║  prosódica). Si no, separa por las marcas ─── para manejar       ║
+║  mejor el tiempo por sección.                                    ║
+║                                                                  ║
+╚══════════════════════════════════════════════════════════════════╝
+
+
+PROMPT (copia desde aquí hacia abajo, hasta "FIN PROMPT"):
+─────────────────────────────────────────────────────────────
+
+I'm Juan Manuel Fraga — physician, fifty yesterday, from Mexico. My son is nineteen. <break time="0.4s" /> My parents, fragile in their seventies. <break time="0.5s" /> If I want to be there when he turns fifty, I need to take care of my own health — now.
+
+<break time="1.2s" />
+
+Most people don't notice anything until symptoms appear — by then, the body has been changing for years. <break time="0.6s" /> And that's when the healthcare system shows up. Often, too late. The later it engages, the more complicated and expensive care becomes.
+
+<break time="0.8s" />
+
+I built Health Companion to flip that. <break time="0.4s" /> Not a wellness app. Not another portal. <break time="0.5s" /> A companion that meets you before you're sick — and a system that does better when you stay healthy, not when you don't.
+
+<break time="1.2s" />
+
+Three users in mind: people starting to care for themselves, people already do, and the clinicians who'd rather prevent than treat.
+
+<break time="1s" />
+
+Here's how it works. You start a conversation. The companion captures your story — clinical detail translated into approachable language, no jargon left alone. <break time="0.4s" /> It helps you set goals. Follow up. Build habits. Track progress, with your consent. <break time="0.7s" /> And, most importantly, it builds a longitudinal record of who you are — your health, your habits, your goals — so every conversation ahead is informed by every one before.
+
+<break time="1s" />
+
+It reads from many sources: your conversation, lab PDFs, genetic reports, photos of your wearables and devices. <break time="0.4s" /> Soon, direct integrations with the apps you already use.
+
+<break time="1s" />
+
+But the moat is memory. With Opus four point seven's context window, the companion knows you more deeply each conversation. <break time="0.4s" /> It never replaces your doctor — it makes your time with them count more, and tells you when that time is now.
+
+<break time="1s" />
+
+In the future, it becomes a tool for doctors and clinics that want to do prevention seriously — continuous monitoring, personalized care, early signal when something drifts.
+
+<break time="1s" />
+
+Built by Claude Code subagents, Claude Design, and one human — me. Powered by Opus four point seven's toolkit: tool use, multimodal, extended thinking, prompt caching. <break time="0.5s" /> And built especially for places like Mexico, where most people don't have a family doctor.
+
+<break time="1.2s" />
+
+Because I want more adventures with my son.
+
+─────────────────────────────────────────────────────────────
+FIN PROMPT
+
+
+╔══════════════════════════════════════════════════════════════════╗
+║  NOTAS DE PRONUNCIACIÓN                                          ║
+╠══════════════════════════════════════════════════════════════════╣
+║                                                                  ║
+║  • "Opus 4.7" → escrito como "Opus four point seven"             ║
+║    para que ElevenLabs no lo lea como "Opus four point seventy"  ║
+║                                                                  ║
+║  • "México" → escrito sin acento ("Mexico") en el prompt para    ║
+║    que ElevenLabs no se confunda; tu voz clonada sabrá darle     ║
+║    el acento natural si te grabaste hablando con tu acento.      ║
+║                                                                  ║
+║  • Los <break time="X.Ys" /> son SSML reconocidos por            ║
+║    ElevenLabs. NO los pongas como "(pausa)" o "..." porque       ║
+║    los lee literal.                                              ║
+║                                                                  ║
+║  • Si quieres más variación de entonación, agrega más            ║
+║    <break time="0.3s" /> entre cláusulas — el modelo respeta     ║
+║    las pausas y eso lo hace sonar más humano.                    ║
+║                                                                  ║
+╚══════════════════════════════════════════════════════════════════╝
+
+
+╔══════════════════════════════════════════════════════════════════╗
+║  PASOS                                                           ║
+╠══════════════════════════════════════════════════════════════════╣
+║                                                                  ║
+║  1. Voice Lab → Add Voice → Instant Voice Clone (basta con       ║
+║     30s de tu voz limpia, sin ruido de fondo, en inglés si       ║
+║     puedes — o mezcla EN/ES).                                    ║
+║                                                                  ║
+║  2. Espera ~30s a que entrene la voz clone.                      ║
+║                                                                  ║
+║  3. Voice → tu nueva voz → Generate.                             ║
+║                                                                  ║
+║  4. Pega el bloque entre "PROMPT" y "FIN PROMPT" arriba.         ║
+║                                                                  ║
+║  5. Voice settings: aplica los valores recomendados arriba.      ║
+║                                                                  ║
+║  6. Generate. Escucha. Si suena bien, descarga el WAV/MP3.       ║
+║                                                                  ║
+║  7. En tu editor de video, alinea con los clips Remotion         ║
+║     siguiendo los timestamps del archivo "guion grabado.txt".    ║
+║                                                                  ║
+║  8. Si el audio total dura más de 3 minutos, sube el speaking    ║
+║     rate en el editor (1.05× usualmente es invisible al oído).   ║
+║                                                                  ║
+╚══════════════════════════════════════════════════════════════════╝
+
+
+╔══════════════════════════════════════════════════════════════════╗
+║  TIPS DE GRABACIÓN PARA EL VOICE CLONE                           ║
+╠══════════════════════════════════════════════════════════════════╣
+║                                                                  ║
+║  Para mejor resultado del Instant Voice Clone:                   ║
+║                                                                  ║
+║  • Graba en cuarto SILENCIOSO. No hay nada que ElevenLabs        ║
+║    odie más que ruido de fondo.                                  ║
+║                                                                  ║
+║  • Usa MIC USB o de podcast, NO el built-in del Mac.             ║
+║                                                                  ║
+║  • Habla 30s — 2 min. Más no necesariamente es mejor para        ║
+║    Instant Clone.                                                ║
+║                                                                  ║
+║  • Habla en INGLÉS si planeas que la voz clonada hable inglés    ║
+║    (matchea registro). Tu acento mexicano-americano se preserva. ║
+║                                                                  ║
+║  • Lee con la energía que QUIERES que tenga la voz final —       ║
+║    si lees aburrido, va a sonar aburrido.                        ║
+║                                                                  ║
+║  • Frase de muestra para grabar (~30s):                          ║
+║    "Hello, I'm Juan Manuel Fraga, a physician from Mexico.       ║
+║    I just turned fifty, and I want to spend the next decades     ║
+║    in good health — traveling, building, watching my son grow.   ║
+║    I built Health Companion because, sitting at fifty, I         ║
+║    realized I needed it for myself. The system that's supposed   ║
+║    to keep me well doesn't pay anyone to keep me well. So I      ║
+║    built one that does."                                         ║
+║                                                                  ║
+╚══════════════════════════════════════════════════════════════════╝

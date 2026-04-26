@@ -1,0 +1,113 @@
+GUION GRABADO — Health Companion · 2:20 total
+================================================
+
+Para grabar tú mismo. Cada sección está medida al ritmo natural de
+inglés narrado (~145 palabras/min). Si te apuras un poco, cabe; si
+necesitas pausas, mete las que están marcadas como [pausa].
+
+Notas: NUNCA leas las marcas — son solo guía visual. Habla más que
+leas. Esta es TU historia, no es presentación.
+
+
+─── 0:00 — 0:14 · 14 segundos ────────────────────────────────────
+
+  I'm Juan Manuel Fraga — physician, fifty yesterday, from México.
+  My son is nineteen. [pausa breve] My parents, fragile in their
+  seventies. If I want to be there when he turns fifty, I need to
+  take care of my own health — now.
+
+  ▸ ~32 palabras · 13–14s · cuelga la última frase
+  ▸ Ritmo: SLOW. La línea es tu hook personal.
+
+
+─── 0:14 — 0:43 · 29 segundos ────────────────────────────────────
+
+  Most people don't notice anything until symptoms appear — by then,
+  the body has been changing for years. [pausa] And that's when the
+  healthcare system shows up. Often, too late. The later it
+  engages, the more complicated and expensive care becomes.
+
+  [pausa de respiración]
+
+  I built Health Companion to flip that. Not a wellness app. Not
+  another portal. A companion that meets you before you're sick —
+  and a system that does better when you stay healthy, not when
+  you don't.
+
+  ▸ ~70 palabras · 28–29s · ritmo medio
+
+
+─── 0:43 — 0:49 · 6 segundos ─────────────────────────────────────
+
+  Three users in mind: people starting to care for themselves,
+  people already do, and the clinicians who'd rather prevent than
+  treat.
+
+  ▸ ~22 palabras · 7s tight · LEE RÁPIDO pero claro
+  ▸ Si te queda largo, sustituye por: "Three users:
+    those starting. Those going. And the clinicians who prevent."
+    (~14 palabras, 5s)
+
+
+─── 0:49 — 1:19 · 30 segundos ────────────────────────────────────
+
+  Here's how it works. You start a conversation. The companion
+  captures your story — clinical detail translated into approachable
+  language, no jargon left alone. It helps you set goals. Follow
+  up. Build habits. Track progress, with your consent. [pausa] And,
+  most importantly, it builds a longitudinal record of who you are
+  — your health, your habits, your goals — so every conversation
+  ahead is informed by every one before.
+
+  ▸ ~70 palabras · 30s
+
+
+─── 1:19 — 1:30 · 11 segundos ────────────────────────────────────
+
+  It reads from many sources: your conversation, lab PDFs, genetic
+  reports, photos of your wearables and devices. Soon, direct
+  integrations with the apps you already use.
+
+  ▸ ~30 palabras · 12s
+
+
+─── 1:30 — 1:45 · 15 segundos ────────────────────────────────────
+
+  But the moat is memory. With Opus 4.7's context window, the
+  companion knows you more deeply each conversation. It never
+  replaces your doctor — it makes your time with them count more,
+  and tells you when that time is now.
+
+  ▸ ~42 palabras · 16s · ritmo MEDIO con énfasis en "memory"
+
+
+─── 1:45 — 2:00 · 15 segundos ────────────────────────────────────
+
+  In the future, it becomes a tool for doctors and clinics that
+  want to do prevention seriously — continuous monitoring,
+  personalized care, early signal when something drifts.
+
+  ▸ ~28 palabras · 12s
+
+
+─── 2:00 — 2:17 · 17 segundos ────────────────────────────────────
+
+  Built by Claude Code subagents, Claude Design, and one human —
+  me. Powered by Opus 4.7's toolkit: tool use, multimodal,
+  extended thinking, prompt caching. And built especially for
+  places like México, where most people don't have a family
+  doctor.
+
+  ▸ ~42 palabras · 17s · "México" cae con peso
+
+
+─── 2:17 — 2:20 · 3 segundos ─────────────────────────────────────
+
+  Because I want more adventures with my son.
+
+  ▸ 8 palabras · 3s · LENTO. Es el cierre.
+  ▸ Después: silencio breve antes de fade.
+
+
+═══ TOTAL ════════════════════════════════════════════════════════
+~334 palabras · 2:20 narrado · cabe en 3:00 hard cap con holgura
