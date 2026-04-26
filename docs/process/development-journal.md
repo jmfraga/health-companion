@@ -1639,3 +1639,192 @@ Quotable:
 > commits.
 
 ---
+
+### Sunday · The pivot, the take, the submit (Apr 26)
+
+Submit day. JM came back to the laptop early, knowing the recording
+window was ~14:00 and the hard deadline was 19:00 CDMX.
+
+**The pivot.** First message of the morning: *"sé que no te va a
+encantar, pero quizá la historia debe ser la de Juan Manuel — yo —
+ayer cumplí 50 años…"* He'd decided on the ride back from yesterday
+that the demo's narrative shouldn't be Laura, the synthetic patient,
+but his own. Fifty yesterday. Watching his parents age. Father with
+two MIs (40 and 73) plus emphysema. Mother with lung cancer at 65.
+Both parents diabetic. Three goals: a smoother glucose curve,
+cholesterol staying where it is, more muscle as he ages, not less.
+
+The first instinct was caution — recording day is no time to pivot
+narratives. But on a second read the case was overwhelming: a
+50-year-old practicing physician who *audited the prompt himself*
+narrating *his own* story is a category-of-one demo. The clinical
+material the audited prompt rewards — Lp(a), CAC, the early-MI
+language — was richer in JM's case than in Laura's. The persona was
+not a stretch from the README's "three users" matrix; he was
+**user #2 personified**.
+
+**The practice run.** Before rewriting the demo-script, ran a fresh
+practice against production with JM's actual Turn 1 + Turn 2.
+
+- Turn 1 fired nine tools and produced a 1670-character warm
+  reflection that closed with two natural questions (last doctor
+  visit + smoking history). The model captured every family-history
+  field correctly, including *"first MI at age 40, second at 73"* as
+  a string rather than booleans.
+- Turn 2 the model shifted register on the line *"I've been trained
+  to treat sick people, not to help people stay healthy"* — its
+  reply opened with **"Doctor to doctor — here's how I'd think about
+  it"**, then broke into three sections that mapped one-to-one to
+  JM's stated goals. Glucose: behavioral levers + measurement, naming
+  fasting glucose, HbA1c, fasting insulin with HOMA-IR, and a CGM
+  trial *"because you specifically said 'glucose curve.'"* Lipids:
+  the early-MI framing, with a careful walk through Lp(a) (NLA 2019)
+  and CAC scoring (ACC/AHA 2018) — exactly the citations the audit
+  added on Friday. Muscle: progressive resistance, ~1.6 g/kg protein,
+  DEXA baseline, grip strength as the cheap proxy. The model also
+  said the line that landed everything: *"even physicians benefit
+  from a primary doctor who isn't them."*
+
+The audit work paid forward. Every screening edit JM had marked on
+Friday surfaced verbatim in the response.
+
+**The script rewrite.** demo-script v4 written around the new
+narrative, with v3 (Laura) preserved as `demo-script-laura-v3.md.bak`
+for reference. The new flow's geometry: Act 1 Turn 2 ends with the
+model asking for labs — that question becomes the *organic Act 1 →
+Act 2 transition*. JM drops his real January 2026 lab PDF as the
+literal answer. The companion reads it, surfaces what's worth a
+conversation, and almost certainly recommends the **HbA1c that JM's
+labs don't have** — a beautiful demo moment of the product noticing
+a missing test against the family-history backdrop.
+
+A `recording-cheat-sheet.md` got written in parallel — copy-pasteable
+Turn 1/Turn 2 messages, narration cues per beat, fail-recovery lines.
+That plus `recording-runbook.md` (operations) plus
+`expected-takes-jm.md` (model behavior captured ahead of time) were
+SCP'd to the M4 Trabajo `~/Desktop/Video HC/` so JM had every working
+artifact in one place alongside the Remotion clips.
+
+**Postvisit anxiety.** Mid-morning, JM was watching the previous
+year's hackathon presentations. *"Está presentando el tercer lugar
+del hackathon del año pasado, postvisit.ai, que literal tiene el
+'bridge' entre médico y pacientes… me da miedo que lo vean demasiado
+parecido."* The fear was legitimate, and the differentiation was
+also already structural — sick-care tooling (postvisit) vs wellness
+companion (Health Companion); Stage 3 vs Stages 1+2; product center
+of gravity on the patient surface vs on the visit handoff. But
+*structural* isn't the same as *audible*, so we tightened two beats:
+the cold open got a sharp contrast line (*"This isn't a tool that
+makes the visit better. This is a tool that makes you well enough
+that the visit becomes a check-in, not a rescue"*), and the close
+got the thesis (*"Most health products live around the visit —
+before it, after it, instead of it. This one lives between visits,
+in the years when nothing is happening yet — the years that decide
+everything"*). Then JM added the **México** beat that had been
+sitting in the docs but not the take: *"Built for the places that
+need it most — México, where most people don't have a family doctor.
+Built for me, sitting in front of fifty."* Two parallel "Built for"
+clauses — place and person — landed the geographic commitment in the
+demo's most memorable beat.
+
+**Demo-bypass race condition (Safari).** Mid-morning, while testing,
+JM saw a flash-of-chat-then-bounce-to-/login on Safari incognito.
+Diagnosed: the redirect `useEffect` was capturing a stale
+`demoBypass=false` closure from the first render before
+`useDemoBypass` had a chance to flip the state. Extracted a
+synchronous `isDemoBypassNow()` helper that reads env var + URL
+param + localStorage at call time, called it inside the redirect
+effect, and made the bypass *sticky* via localStorage so the
+Trends ↔ Bridge round-trip preserves the demo posture across
+internal navigation. Login page also got a primary "Continue as
+demo (no sign-in)" emerald CTA that navigates straight to `/?demo=1`,
+bypassing Supabase entirely — Google OAuth still needs a Supabase
+URL-config + Google Cloud redirect-URI pass that's post-submit work.
+
+**The voice.** JM tried ElevenLabs Instant Voice Clone for the
+narration (recording his own voice on the take had felt brittle
+in dry-runs). The result drifted slightly toward Indian English on
+`eleven_multilingual_v2` — a known artifact of the model's training
+mix when the source sample is a Spanish-accented English speaker.
+JM laughed: *"se escucha un poco acento indú pero creo que es mejor
+que grabado por mí jejeje."* Settings tweaks documented in
+`guion eleven labs.txt` (turbo_v2_5 + lower style exaggeration if he
+wants to retry post-submit). For today, ship.
+
+**The music.** Suno V4 instrumental score at ~72 BPM, piano-led with
+sustained string pads, in the spirit of Max Richter / Ólafur
+Arnalds / Tom Howe Apple-keynote. Three prompts drafted (cinematic
+ambient, documentary-piano, Iberian-Latin-restraint) so JM could
+pick the texture that felt right.
+
+**The render. The upload. The submit.**
+- Final video: 2:50 rendered in Camtasia from Remotion clips + voice
+  + Suno score
+- YouTube unlisted: https://youtu.be/-q0DTQhQW4g
+- Project name on the form: *"Health Companion — keeps you well
+  between visits, in your language."*
+- Description: 191 words, founder voice, Topol thesis open, "Built
+  for the places that need it most + Built for me, sitting in front
+  of fifty."
+- Hackathon problem statement: **"Build for what you know"** — the
+  honest fit, the one JM's authority can't be beaten on.
+- Side prize tag: **"Best use of Claude Managed Agents"** — for the
+  sibling endpoint at `/api/simulate-months-later-managed`.
+- Thoughts on building with Opus 4.7: *"Honestly — it's been fun.
+  I feel part of a team rather than alone in front of a blank IDE.
+  The technical problems are the easy part. What that frees me up to
+  do is spend my time on the human aspects of the product, which are
+  the ones I actually care about. I'm a physician, not a software
+  engineer. Five nights ago, I had an idea and an API key. The
+  product is now running in production, the clinical voice has been
+  audited by me line by line, and the demo I'm submitting is my own
+  story — not a synthetic patient. Opus 4.7 made that possible
+  without me having to become someone I'm not."*
+
+**Submitted before the deadline.** The form's confirmation page was
+screenshot. The Vercel token was queued for revocation tomorrow.
+The live URL was kept loaded with JM's own demo state — labs,
+profile photo from the video, scale photos, screenshots — so any
+judge opening the URL sees exactly what they saw in the recording.
+A reset is queued for Monday morning.
+
+**Then the housekeeping.** The Video HC working folder on the M4
+Trabajo desktop was rsync'd into `~/health-companion/video/` —
+1.0 GB of working assets, with the heavy stuff (Camtasia bundle,
+Remotion renders, MP4s) gitignored and the lightweight scripts
+(Guion.rtf, guion-grabado.txt, guion-eleven-labs.txt, recording
+docs) tracked. A `video/README.md` documents the production stack
+(Remotion + Camtasia + ElevenLabs + Suno) and the pen-down state
+for the next iteration.
+
+**The session got a new name.** This Claude Code session is now
+called **Health-Companion**, signaling the project continues past
+submission — Phase 1 (Supabase per-user persistence + cost
+architecture + first pilot) starts tomorrow.
+
+**End of the hackathon arc.** Six nights. Fifteen-plus surfaces.
+A clinically-audited orchestrator. A live URL that judges can hit
+right now. A YouTube video that exists in the world. A founder who
+wrote the prompt, audited the prompt, dogfooded the product, and
+narrated the demo as himself.
+
+The judging is martes 28. Whatever the result, the artifact exists.
+The thesis is in production. The product helped its first user —
+the man who built it.
+
+Quotables:
+
+> *"Sé que no te va a encantar, pero quizá la historia debe ser la
+> de Juan Manuel."* — JM at the start of Sunday, choosing
+> authenticity over rehearsal.
+
+> *"Doctor to doctor — but I still pass the plain-language
+> translations through, because that's the discipline."* — the
+> orchestrator, surfacing the audit's clinical voice live in
+> production, on a take.
+
+> *"I built it because, sitting in front of fifty, I wanted it for
+> myself."* — the demo's close. The shortest, truest thesis the
+> product has.
+
+---
