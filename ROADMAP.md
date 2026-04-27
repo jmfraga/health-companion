@@ -226,9 +226,10 @@ The three levers from [`ROADMAP.md`](./ROADMAP.md) §18, in order:
 3. **Settings surface lands**: language override, section-hide toggles (Vaccines optional), reasoning-visibility toggle, privacy export/delete, profile photo.
 4. **Screening cards grow a "Set a date" affordance** → reminder against `reminders` → surfaces in Next Steps.
 5. **Vaccines section** as a first-class layer (past + future, cited CDC ACIP / SSA México, hideable).
-6. **Behavioral follow-through layer** — contextual reminders with emotional register, active verification, real celebration on follow-through.
-7. **Wearable pilot**: Garmin + Apple Health + Google Fit / Health Connect. Start with HRV, RHR, nocturnal HR, respiratory rate, sleep, stress, body battery, SpO₂.
-8. **Proactivity v1 on Claude Managed Agents** in production (we already have the endpoint shape from the hackathon).
+6. **Women's health as a first-class surface** — menstrual cycle tracking, fertility / pregnancy planning, prenatal continuity, postpartum, perimenopause, menopause. Today's prompt covers cervical screening (Pap / HPV) and breast (mammography, BRCA, NCCN early-start), but the lifelong arc of female reproductive and hormonal health deserves its own surface, not a subset of "preventive screening." Estrogen status shapes cardiovascular timing, bone density, mental-health screens, sleep architecture, and weight regulation — the whole prevention map shifts when this layer is honored. Pulls cycle / ovulation / pregnancy signals from Apple Health and Fitbit when the wearable integrations land. *(First-viewer feedback on the submission video, 2026-04-26 — flagged as a real gap, not a nice-to-have.)*
+7. **Behavioral follow-through layer** — contextual reminders with emotional register, active verification, real celebration on follow-through.
+8. **Wearable pilot**: Garmin + Apple Health + Google Fit / Health Connect. Start with HRV, RHR, nocturnal HR, respiratory rate, sleep, stress, body battery, SpO₂. Pair with the women's-health surface to ingest cycle / ovulation data where the wearable supports it.
+9. **Proactivity v1 on Claude Managed Agents** in production (we already have the endpoint shape from the hackathon).
 
 ### Phase 2 · The Bridge (Q3–Q4 2026)
 - Real clinician workflow: clinician auth, panel of enrolled patients, clinician note editor with LLM-assisted plain-language translation, soft flags from real state, shared calendar awareness.

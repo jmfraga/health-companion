@@ -1852,4 +1852,31 @@ high-intensity 50 hours. The "team of subagents" architecture
 made it feel less than it actually was — but the calendar was
 what it was.
 
+#### First-viewer feedback (Apr 26, post-submit)
+
+The first person who watched the YouTube video sent back a
+substantive note: **the demo, and the product behind it, doesn't
+surface women's reproductive health as its own layer.** Cervical
+screening (Pap / HPV) and breast (mammography, BRCA, NCCN
+early-start) are covered in the audited prompt — but the lifelong
+arc of menstrual cycle, fertility, pregnancy and postpartum,
+perimenopause, and menopause is not first-class anywhere in the
+product. That's a real gap, not a polish item: estrogen status
+shapes cardiovascular timing, bone density, mental-health screens,
+sleep architecture, weight regulation — half the prevention map
+shifts when this layer is honored.
+
+Logged as Phase-1 capability add #6 in
+[`ROADMAP.md`](../../ROADMAP.md), with the wearable pilot (#8)
+explicitly paired so cycle / ovulation signals from Apple Health
+and Fitbit flow into the same surface when integrations land.
+
+The note is a useful reminder: a founder narrative built around a
+50-year-old man is a faithful demo of *who built it,* but it is
+not a faithful demo of *who it should serve.* The README's
+three-users matrix already names "people who want to start caring"
+as the broad first persona, but if the demo can only narrate that
+persona through one lens, the product's range isn't visible. Phase
+1 has to do better.
+
 ---
