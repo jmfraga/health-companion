@@ -1866,8 +1866,8 @@ shapes cardiovascular timing, bone density, mental-health screens,
 sleep architecture, weight regulation — half the prevention map
 shifts when this layer is honored.
 
-Logged as Phase-1 capability add #6 in
-[`ROADMAP.md`](../../ROADMAP.md), with the wearable pilot (#8)
+Logged as Phase-1 capability add #7 in
+[`ROADMAP.md`](../../ROADMAP.md), with the wearable pilot (#9)
 explicitly paired so cycle / ovulation signals from Apple Health
 and Fitbit flow into the same surface when integrations land.
 
@@ -1878,5 +1878,32 @@ three-users matrix already names "people who want to start caring"
 as the broad first persona, but if the demo can only narrate that
 persona through one lens, the product's range isn't visible. Phase
 1 has to do better.
+
+The same first viewer also surfaced a second observation worth
+recording: they liked the idea of the product becoming a **personal
+clinical archive** — somewhere a person stores their labs, imaging
+reports, specialist notes, vaccination cards, hospitalization
+summaries, audio notes from doctor visits, and pulls them up later
+when something becomes relevant. Today the lab-ingest flow accepts
+PDFs and images and stores extracted values, but the *user-facing*
+"these are my documents" surface doesn't exist — it lives only
+implicitly in the timeline.
+
+That feedback maps to a real gap. The Phase-1 Supabase Storage
+migration provides the foundation; the **archive surface** is the
+user-visible feature that turns it into a product the patient feels
+they own. Especially valuable in México, where clinical records
+are fragmented across providers with no national EHR, and the
+patient is the only one carrying the full file. Logged as Phase-1
+capability add #3 — promoted high in the priority order because
+every other category surface (Vaccines, Women's health,
+Behavioral follow-through) benefits from a real archive to read
+from and write to.
+
+Both items came from the same first viewer in the same message —
+that's a high-density signal. Future post-submit reviews from
+people we trust will likely surface a similar caliber of gap. The
+right Phase-1 reflex is to capture them in ROADMAP and journal
+as they arrive, not later.
 
 ---
