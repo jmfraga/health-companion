@@ -9,19 +9,15 @@ years, available to everyone.
 
 ## Status
 
-**Last updated:** 2026-04-25 (Saturday — clinical audit landed,
-photo-of-device path validated end-to-end, mobile chrome polished
-for Android Chrome / iOS Safari, demo bypass made sticky).
+**Last updated:** 2026-04-28 — hackathon judging closed; this repository
+is archived as the submission snapshot.
 
-Submission for the **Built with Opus 4.7** hackathon (April 21–26, 2026).
-Submission deadline: Sunday, 2026-04-26 at 7:00 PM CDMX.
+Submission to the **Built with Opus 4.7** hackathon (April 21–26, 2026).
+The hackathon is closed. The hosted demo URLs that ran during judging
+have been retired. To explore the product, run it locally — see
+[Run locally](#run-locally) below.
 
-**Live URLs:**
-
-- **App** → [`https://health-companion-five.vercel.app/?demo=1`](https://health-companion-five.vercel.app/?demo=1) — one click in. The `?demo=1` flag is sticky, so Trends ↔ Bridge round-trips don't bounce you to /login.
-- **API** → [`https://hc-companion-api.fly.dev`](https://hc-companion-api.fly.dev) (`/health`, `/api/demo/reset`, `/api/trends/seed-demo` all live).
-
-What's working today: cold-open chat with welcome card and example
+What was working at submission: cold-open chat with welcome card and example
 chips · streaming Opus 4.7 with visible tool-use animation · live
 profile panel · screening calendar with guideline citations · opt-in
 "See reasoning" disclosure · multimodal lab ingestion (PDF or photo) ·
@@ -67,18 +63,16 @@ lives at [`docs/assets/three-users.html`](./docs/assets/three-users.html).
 
 ## Try it
 
-Easiest path: open
-[`https://health-companion-five.vercel.app/?demo=1`](https://health-companion-five.vercel.app/?demo=1)
-in any modern browser. The `?demo=1` flag skips authentication so you
-land directly in the chat.
+The hosted demo that ran during hackathon judging has been retired. To
+explore the product, clone the repository and run it locally — see
+[Run locally](#run-locally) below.
 
-Say hello, and tell it something about you — your age, a health goal, a
-lab result you don't fully understand. The profile panel fills in as
-you talk; the timeline builds as facts accumulate; every screening
-recommendation cites the guideline it comes from and can be audited via
-the **See reasoning** disclosure (on by default for new visitors;
-toggle in `/settings` if you'd rather hide it). Four example chips —
-sleep, longevity, labs, smartwatch — sit on the empty state, each
+Once it's running, say hello and tell it something about you — your age,
+a health goal, a lab result you don't fully understand. The profile
+panel fills in as you talk; the timeline builds as facts accumulate;
+every screening recommendation cites the guideline it comes from and
+can be audited via the **See reasoning** disclosure. Four example chips
+— sleep, longevity, labs, smartwatch — sit on the empty state, each
 one clickable and editable before you send. You can also drop a lab
 PDF or a photo of any device screen (smartwatch, blood pressure cuff,
 prescription label) directly into the conversation — Opus 4.7 reads
@@ -87,9 +81,6 @@ it without an OCR layer in between.
 If you want to see what three months of data looks like on a real arc,
 `/trends` ships a one-click fixture (the "demo arc") so the longitudinal
 surface isn't empty on a cold open.
-
-To run locally instead, see
-[Run locally](#run-locally) at the bottom of this README.
 
 ## Recorded walk-through (hackathon demo video)
 
@@ -250,11 +241,10 @@ Reset state and seed the LDL demo arc in one command:
 
 ```bash
 bash scripts/demo-preflight.sh
-# or against production:
-HC_API_URL=https://hc-companion-api.fly.dev bash scripts/demo-preflight.sh
 ```
 
-The deploy playbook for Fly.io + Vercel is in [`DEPLOY.md`](./DEPLOY.md).
+The deploy playbook for Fly.io + Vercel is in [`DEPLOY.md`](./DEPLOY.md);
+the hosted environments described there were retired after judging.
 
 ## Disclaimer
 
@@ -265,4 +255,10 @@ medical emergency, call your local emergency services immediately.
 
 ## License
 
-Apache License 2.0 — see [`LICENSE`](./LICENSE).
+Private — hackathon submission. Not licensed for redistribution. See
+[`LICENSE`](./LICENSE) for the full terms.
+
+Earlier commits to this repository were released under the Apache License,
+Version 2.0; code obtained under that license remains governed by its
+terms for the commits to which it applied. The current and future state
+of the repository is closed-source.
