@@ -57,7 +57,7 @@ SSE event channels:
 | Four development agents (`hc-*`) defined | ✅ |
 | Anthropic API key + Opus 4.7 verified | ✅ |
 | Supabase Postgres connected (session pooler `aws-1-us-east-2`) | ✅ (held for post-hackathon) |
-| Dev servers reachable via Tailscale (M4: 100.72.169.113) | ✅ |
+| Dev servers reachable via Tailscale (M4: <tailscale-ip>) | ✅ |
 | `POST /api/chat` with streaming SSE + tool use | ✅ |
 | `save_profile_field` tool | ✅ |
 | Extended thinking (`effort: max`, adaptive, summarized) | ✅ |

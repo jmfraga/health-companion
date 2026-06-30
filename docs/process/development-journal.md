@@ -184,7 +184,7 @@ After the evening pivot, we pushed straight through into implementation. By ~mid
 
 **Debugging we survived:**
 
-- Next.js 15 silently blocks HMR and hydration from non-localhost origins — the button on the laptop's browser stayed disabled. The fix was a single line in `next.config.ts`: `allowedDevOrigins: ["100.72.169.113"]`. Revisiting Next.js hydration on new hosts is now a ritual, not a one-off.
+- Next.js 15 silently blocks HMR and hydration from non-localhost origins — the button on the laptop's browser stayed disabled. The fix was a single line in `next.config.ts`: `allowedDevOrigins: ["<tailscale-ip>"]`. Revisiting Next.js hydration on new hosts is now a ritual, not a one-off.
 - Supabase deprecated IPv4 on the direct connection string; the M4 could not route IPv6 to their pool. Switched to the Session Pooler at `aws-1-us-east-2.pooler.supabase.com:5432`. The region had to come from the Supabase dashboard Connect modal — several regions we tried silently returned "tenant or user not found".
 - Opus 4.7 rejected the legacy `thinking.type = "enabled"` shape ("not supported for this model"). The new shape is `thinking.type = "adaptive"` with an `output_config.effort` knob. Below `"max"`, thinking frequently does not emit any visible `thinking_delta` tokens — the model decides whether it's worth reasoning publicly. For a demo where reasoning is the wow, we hold `effort = "max"` as the default.
 
@@ -1217,7 +1217,7 @@ Hypotheses for tomorrow morning:
 3. The `ChatPage` session guard redirects on every render because `session` becomes `null` briefly. Would show as /login URL.
 4. Service worker from earlier overnight install (none registered that I know of, but worth verifying `navigator.serviceWorker.getRegistrations()` in DevTools).
 
-First morning check: open `http://100.72.169.113:3000` in a **new incognito window**, sign in as demo user, open DevTools Console — look for hydration errors / Supabase auth errors. If there are none and the UI still renders old, read the page DOM to confirm which component branch actually rendered.
+First morning check: open `http://<tailscale-ip>:3000` in a **new incognito window**, sign in as demo user, open DevTools Console — look for hydration errors / Supabase auth errors. If there are none and the UI still renders old, read the page DOM to confirm which component branch actually rendered.
 
 If hydration is silently swallowed, temporary unblock: move the page content to a Server Component wrapper that shows the new UI unconditionally while debugging the auth guard.
 
